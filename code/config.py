@@ -59,7 +59,9 @@ __C.model = edict(
         control_feed_prev=True,
         control_cont_activation='TANH',
     ),
-    read_unit=edict(),
+    read_unit=edict(
+        num_blocks=3
+    ),
     write_unit=edict(
         rtom=False,
         self_attn=False,

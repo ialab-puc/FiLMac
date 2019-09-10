@@ -121,9 +121,37 @@ class ControlUnit(nn.Module):
 
         return next_control
 
+class FiLMBlock(nn.Module):
+    def __init__(self, module_dim, dropout=5e-2, batchnorm_affine=False):
+        super(FiLMBlock, self).__init__()
+        self.dropout = nn.Dropout(dropout)
+        self.input_proj = nn.Conv2d(module_dim, module_dim, kernel_size=1, stride=1, padding=0)
+        self.relu = nn.ReLU()
+        self.conv1 = nn.Conv2d(module_dim, module_dim, kernel_size=3, stride=1, padding=1)
+        self.bn1 = nn.BatchNorm2d(module_dim, affine=batchnorm_affine)
+
+    def forward(self, know, gamma, beta):
+        # Pass know through convolutions
+        batch_size, hw, module_dim = know.size()
+        know = know.transpose(1,2).view(batch_size, module_dim, 14, 14)
+
+        x = self.relu(self.input_proj(know))
+
+        # Store mid-result for residual connection
+        out = self.conv1(x)
+        out = self.bn1(out)
+        out = self.apply_film(out, gamma, beta)
+        out = self.relu(self.dropout(out))
+        residual = out + x
+        return residual.permute(0, 2, 3, 1).view(batch_size, hw, module_dim)
+
+    def apply_film(self, x, gammas, betas):
+        gammas = gammas.unsqueeze(2).unsqueeze(3).expand_as(x)
+        betas = betas.unsqueeze(2).unsqueeze(3).expand_as(x)
+        return (x * gammas) + betas
 
 class ReadUnit(nn.Module):
-    def __init__(self, module_dim):
+    def __init__(self, module_dim, num_blocks):
         super().__init__()
 
         self.concat = nn.Linear(module_dim * 2, module_dim)
@@ -136,6 +164,14 @@ class ReadUnit(nn.Module):
         self.activation = nn.ELU()
         self.module_dim = module_dim
         self.kb_attn_id = nn.Identity()
+
+        self.num_blocks = num_blocks
+        self.cond_feat_size = 2 * module_dim
+        self.res_blocks = []
+        for _ in range(num_blocks):
+            self.res_blocks.append(FiLMBlock(self.module_dim, dropout=0.18, batchnorm_affine=False))
+        self.res_blocks = nn.ModuleList(self.res_blocks) 
+        self.film_generator = nn.Linear(self.module_dim, self.cond_feat_size * self.num_blocks)
 
     def forward(self, memory, know, control, memDpMask=None):
         """
@@ -152,6 +188,13 @@ class ReadUnit(nn.Module):
             memDpMask: variational dropout mask (if used)
                 [batchSize, memDim]
         """
+        ## Step 0: Apply FiLMBlocks
+        batch_size, _ = control.size()
+        film = self.film_generator(control).view(batch_size, self.num_blocks,  self.cond_feat_size)
+        gammas, betas = torch.split(film[:,:,:2*self.module_dim], self.module_dim, dim=-1)
+        for i in range(len(self.res_blocks)):
+            know = self.res_blocks[i](know, gammas[:, i, :], betas[:, i, :])
+
         ## Step 1: knowledge base / memory interactions
         # compute interactions between knowledge base and memory
         know = self.dropout(know)
@@ -319,7 +362,6 @@ class MACUnit(nn.Module):
             memories.append(memory.unsqueeze(1))
 
         return memory
-
 
 class InputUnit(nn.Module):
     def __init__(self,
