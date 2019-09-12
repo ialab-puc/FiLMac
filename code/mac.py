@@ -119,7 +119,7 @@ class ControlUnit(nn.Module):
         # apply soft attention to current context words
         next_control = (attn * semantics).sum(1)
 
-        return next_control
+        return next_control, question
 
 class FiLMBlock(nn.Module):
     def __init__(self, module_dim, dropout=5e-2, batchnorm_affine=False):
@@ -173,7 +173,7 @@ class ReadUnit(nn.Module):
         self.res_blocks = nn.ModuleList(self.res_blocks) 
         self.film_generator = nn.Linear(self.module_dim, self.cond_feat_size * self.num_blocks)
 
-    def forward(self, memory, know, control, memDpMask=None):
+    def forward(self, memory, know, control, question_i, memDpMask=None):
         """
         Args:
             memory: the cell's memory state
@@ -190,7 +190,7 @@ class ReadUnit(nn.Module):
         """
         ## Step 0: Apply FiLMBlocks
         batch_size, _ = control.size()
-        film = self.film_generator(control).view(batch_size, self.num_blocks,  self.cond_feat_size)
+        film = self.film_generator(question_i).view(batch_size, self.num_blocks,  self.cond_feat_size)
         gammas, betas = torch.split(film[:,:,:2*self.module_dim], self.module_dim, dim=-1)
         for i in range(len(self.res_blocks)):
             know = self.res_blocks[i](know, gammas[:, i, :], betas[:, i, :])
@@ -349,9 +349,9 @@ class MACUnit(nn.Module):
         for i in range(self.max_step):
             # control unit
 
-            control = self.control(question, context, question_lengths, i, prev_control=control)
+            control, question_i = self.control(question, context, question_lengths, i, prev_control=control)
             # read unit
-            info = self.read(memory, knowledge, control, memDpMask)
+            info = self.read(memory, knowledge, control, question_i, memDpMask)
             # write unit
             memory = self.write(memory, info, control,
                     prev_controls=controls, prev_memories=memories,
