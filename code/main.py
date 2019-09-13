@@ -32,6 +32,7 @@ def parse_args():
     parser.add_argument('--data-dir', dest='data_dir', type=str, default='')
     parser.add_argument('--manualSeed', type=int, help='manual seed')
     parser.add_argument('--cogent', type=str)
+    parser.add_argument('--dataset', type=str)
     parser.add_argument('--eval', action='store_true')
     parser.add_argument('--test', action='store_true')
     parser.add_argument('--logdir', type=str)
@@ -82,6 +83,8 @@ if __name__ == "__main__":
         args.manualSeed = random.randint(1, 10000)
     if args.cogent is not None:
         cfg.DATASET.COGENT = args.cogent.upper()
+    if args.dataset is not None:
+        cfg.DATASET.DATASET = args.dataset
     if args.resume_model is not None:
         cfg.resume_model = args.resume_model
         cfg.resume_model_ema = args.resume_model_ema
@@ -98,8 +101,11 @@ if __name__ == "__main__":
         cfg.WORKERS = args.workers
     if args.logdir:
         cfg.LOGDIR = args.logdir
+
     if args.comet_project_name is not None:
-        os.environ['COMET_PROJECT_NAME'] = args.comet_project_name
+        cfg.COMET_PROJECT_NAME = args.comet_project_name
+    elif cfg.COMET_PROJECT_NAME is None:
+        cfg.COMET_PROJECT_NAME = os.getenv('COMET_PROJECT_NAME')
 
     cfg.exp_name = cfg.LOGDIR
 

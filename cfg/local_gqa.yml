@@ -2,14 +2,14 @@ GPU_ID: '-1'
 WORKERS: 1
 CUDA: False
 LOGDIR: 'filmac'
-COMET_PROJECT_NAME: 'local'
+COMET_PROJECT_NAME: 'local-gqa'
 
 TRAIN:
     FLAG: True
-    LEARNING_RATE: 0.0002
-    # LEARNING_RATE: 0.0001
-    BATCH_SIZE: 128
-    # BATCH_SIZE: 64
+    #LEARNING_RATE: 0.00005
+    LEARNING_RATE: 0.0001
+    # BATCH_SIZE: 4
+    BATCH_SIZE: 64
     MAX_EPOCHS: 30
     SNAPSHOT_INTERVAL: 5
     WEIGHT_INIT: "xavier_uniform"
@@ -20,8 +20,9 @@ TRAIN:
     # MAX_STEPS: 4
 
 DATASET:
-    # DATA_DIR: '/storage1/datasets/CLEVR_v1.0/features'
-    DATA_DIR: '/Users/sebamenabar/Documents/datasets/CLEVR/CLEVR_v1.0/data'
+    # DATA_DIR: '/storage1/datasets/GQA/data'
+    DATASET: 'gqa'
+    DATA_DIR: '/Users/sebamenabar/Documents/datasets/GQA/data'
 
 model:
     max_step: 4
@@ -29,6 +30,7 @@ model:
     common:
         module_dim: 512
     input_unit:
+        in_channels: 2048
         wordvec_dim: 300
         rnn_dim: 512
         bidirectional: True
