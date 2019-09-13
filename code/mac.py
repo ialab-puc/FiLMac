@@ -151,7 +151,7 @@ class FiLMBlock(nn.Module):
         return (x * gammas) + betas
 
 class ReadUnit(nn.Module):
-    def __init__(self, module_dim, num_blocks):
+    def __init__(self, module_dim, num_blocks, film_from):
         super().__init__()
 
         self.concat = nn.Linear(module_dim * 2, module_dim)
@@ -173,6 +173,8 @@ class ReadUnit(nn.Module):
         self.res_blocks = nn.ModuleList(self.res_blocks) 
         self.film_generator = nn.Linear(self.module_dim, self.cond_feat_size * self.num_blocks)
 
+        self.film_from = film_from
+
     def forward(self, memory, know, control, question_i, memDpMask=None):
         """
         Args:
@@ -190,7 +192,10 @@ class ReadUnit(nn.Module):
         """
         ## Step 0: Apply FiLMBlocks
         batch_size, _ = control.size()
-        film = self.film_generator(question_i).view(batch_size, self.num_blocks,  self.cond_feat_size)
+        if self.film_from == 'qi':
+            film = self.film_generator(question_i).view(batch_size, self.num_blocks,  self.cond_feat_size)
+        elif self.film_from == 'control':
+            film = self.film_generator(control).view(batch_size, self.num_blocks,  self.cond_feat_size)
         gammas, betas = torch.split(film[:,:,:2*self.module_dim], self.module_dim, dim=-1)
         for i in range(len(self.res_blocks)):
             know = self.res_blocks[i](know, gammas[:, i, :], betas[:, i, :])

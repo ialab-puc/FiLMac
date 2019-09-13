@@ -62,7 +62,8 @@ __C.model = edict(
         control_cont_activation='TANH',
     ),
     read_unit=edict(
-        num_blocks=3
+        num_blocks=3,
+        film_from=None,
     ),
     write_unit=edict(
         rtom=False,

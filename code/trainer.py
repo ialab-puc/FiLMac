@@ -3,6 +3,7 @@ from __future__ import print_function
 import os
 import sys
 
+import json
 import shutil
 from six.moves import range
 
@@ -21,7 +22,7 @@ from tensorboardX import SummaryWriter
 import mac as mac
 from radam import RAdam
 from datasets import ClevrDataset, collate_fn
-from utils import mkdir_p, save_model, load_vocab, cfg_to_exp_name
+from utils import mkdir_p, save_model, load_vocab, cfg_to_exp_name, flatten_json_iterative_solution
 
 
 class Logger(object):
@@ -119,6 +120,8 @@ class Trainer():
 
         self.previous_best_acc = 0.0
         self.previous_best_epoch = 0
+        self.previous_best_loss = 100
+        self.previous_best_loss_epoch = 0
 
         self.total_epoch_loss = 0
         self.prior_epoch_loss = 10
@@ -135,9 +138,12 @@ class Trainer():
         exp_name = cfg_to_exp_name(cfg)
         print(exp_name)
         self.comet_exp.set_name(exp_name)
-        self.comet_exp.log_parameters(cfg)
+        self.comet_exp.log_parameters(flatten_json_iterative_solution(cfg))
         self.comet_exp.log_asset(self.logfile)
+        self.comet_exp.log_asset_data(json.dumps(cfg), file_name='cfg.json')
         self.comet_exp.set_model_graph(str(self.model))
+        if cfg.cfg_file:
+            self.comet_exp.log_asset(cfg.cfg_file)
 
     def print_info(self):
         print('Using config:')
@@ -237,15 +243,6 @@ class Trainer():
 
             avg_loss = total_loss / total_samples
             train_accuracy = total_correct / total_samples
-            # accuracy = correct.sum().cpu().numpy() / answer.shape[0]
-
-            # if avg_loss == 0:
-            #     avg_loss = loss.item()
-            #     train_accuracy = accuracy
-            # else:
-            #     avg_loss = 0.99 * avg_loss + 0.01 * loss.item()
-            #     train_accuracy = 0.99 * train_accuracy + 0.01 * accuracy
-            # self.total_epoch_loss += loss.item() * answer.size(0)
 
             dataset.set_description(
                 'Epoch: {}; Avg Loss: {:.5f}; Avg Train Acc: {:.5f}'.format(epoch + 1, avg_loss, train_accuracy)
@@ -254,7 +251,7 @@ class Trainer():
         self.total_epoch_loss = avg_loss
 
         dict = {
-            "loss": avg_loss,
+            "avg_loss": avg_loss,
             "accuracy": train_accuracy
         }
         return dict
@@ -267,21 +264,23 @@ class Trainer():
             with self.comet_exp.train():
                 dict = self.train_epoch(epoch)
                 self.reduce_lr()
-                dict['epoch'] = epoch
+                dict['epoch'] = epoch + 1
                 dict['lr'] = self.lr
-                self.comet_exp.log_metrics(dict, epoch=epoch,)
+                self.comet_exp.log_metrics(dict, epoch=epoch + 1,)
 
             with self.comet_exp.validate():
                 dict = self.log_results(epoch, dict)
-                dict['epoch'] = epoch
+                dict['epoch'] = epoch + 1
                 dict['lr'] = self.lr
-                self.comet_exp.log_metrics(dict, epoch=epoch,)
-
+                self.comet_exp.log_metrics(dict, epoch=epoch + 1,)
 
             if cfg.TRAIN.EALRY_STOPPING:
-                if epoch - cfg.TRAIN.PATIENCE == self.previous_best_epoch:
+                # if epoch - cfg.TRAIN.PATIENCE == self.previous_best_epoch:
+                if epoch - cfg.TRAIN.PATIENCE == self.previous_best_loss_epoch:
+                    print('Early stop')
                     break
 
+        self.comet_exp.log_asset(self.logfile)
         self.save_models(self.max_epochs)
         self.writer.close()
         print("Finished Training")
@@ -289,7 +288,7 @@ class Trainer():
 
     def log_results(self, epoch, dict, max_eval_samples=None):
         epoch += 1
-        self.writer.add_scalar("avg_loss", dict["loss"], epoch)
+        self.writer.add_scalar("avg_loss", dict["avg_loss"], epoch)
         self.writer.add_scalar("train_accuracy", dict["accuracy"], epoch)
 
         metrics = self.calc_accuracy("validation", max_samples=max_eval_samples)
@@ -304,6 +303,9 @@ class Trainer():
         if metrics['acc'] > self.previous_best_acc:
             self.previous_best_acc = metrics['acc']
             self.previous_best_epoch = epoch
+        if metrics['loss'] < self.previous_best_loss:
+            self.previous_best_loss = metrics['loss']
+            self.previous_best_loss_epoch = epoch
 
         if epoch % self.snapshot_interval == 0:
             self.save_models(epoch)
@@ -373,8 +375,3 @@ class Trainer():
             loss=avg_loss,
             loss_ema=avg_loss_ema
         )
-
-        # accuracy_ema = total_correct_ema / total_samples
-        # accuracy = total_correct / total_samples
-
-        # return accuracy, accuracy_ema

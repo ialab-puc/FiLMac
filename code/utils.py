@@ -4,6 +4,7 @@ import glob
 import errno
 import pickle
 from copy import deepcopy
+from itertools import chain, starmap
 
 import numpy as np
 
@@ -106,33 +107,43 @@ def cfg_to_exp_name(cfg):
     lr = cfg.TRAIN.LEARNING_RATE
     module_dim = cfg.model.common.module_dim
     max_step = cfg.model.max_step
-    sss = 'sss' if cfg.model.separate_syntax_semantics else ''
-    if len(sss) and cfg.model.input_unit.separate_syntax_semantics_embeddings:
-        sss += 'e'
-    control_feed_prev = cfg.model.control_unit.control_feed_prev
+    num_blocks = cfg.model.read_unit.num_blocks
+    film_from = cfg.model.read_unit.film_from
     
-    if cfg.model.write_unit.rtom:
-        write = 'rtom'
-    else:
-        write = ''
-        if cfg.model.write_unit.self_attn:
-            write += 'sa'
-        if cfg.model.write_unit.gate:
-            write += 'g'
-            if cfg.model.write_unit.gate_shared:
-                write += 's'
-            else:
-                write += 'u'
-    
-    exp_name = f'{max_step}_{module_dim}'
-    if sss:
-        exp_name += f'_{sss}'
-    if control_feed_prev:
-        exp_name += f'_cfp'
-    exp_name += f'_{write}'
-
+    exp_name = f'{max_step}_{module_dim}_nb{num_blocks}'
+    exp_name += f'_ff{film_from}'
     exp_name += f'_bsz{bsz}_lr{lr}'
 
     return exp_name
             
+def flatten_json_iterative_solution(dictionary):
+    """Flatten a nested json file"""
+
+    def unpack(parent_key, parent_value):
+        """Unpack one level of nesting in json file"""
+        # Unpack one level only!!!
         
+        if isinstance(parent_value, dict):
+            for key, value in parent_value.items():
+                temp1 = parent_key + '.' + key
+                yield temp1, value
+        elif isinstance(parent_value, list):
+            i = 0 
+            for value in parent_value:
+                temp2 = parent_key + '.'+str(i) 
+                i += 1
+                yield temp2, value
+        else:
+            yield parent_key, parent_value    
+
+            
+    # Keep iterating until the termination condition is satisfied
+    while True:
+        # Keep unpacking the json file until all values are atomic elements (not dictionary or list)
+        dictionary = dict(chain.from_iterable(starmap(unpack, dictionary.items())))
+        # Terminate condition: not any value in the json file is dictionary or list
+        if not any(isinstance(value, dict) for value in dictionary.values()) and \
+           not any(isinstance(value, list) for value in dictionary.values()):
+            break
+
+    return dictionary

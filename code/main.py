@@ -38,11 +38,13 @@ def parse_args():
     parser.add_argument('--resume-model', type=str)
     parser.add_argument('--resume-model-ema', type=str)
     parser.add_argument('--bsz', type=int)
+    parser.add_argument('--lr', type=float)
     parser.add_argument('--sample', action='store_true')
     parser.add_argument('--start-epoch', type=int)
     parser.add_argument('--epochs', type=int)
     parser.add_argument('--workers', type=int)
     parser.add_argument('--logcomet', action='store_true')
+    parser.add_argument('--comet-project-name', type=str)
     args = parser.parse_args()
     return args
 
@@ -68,6 +70,7 @@ if __name__ == "__main__":
     args = parse_args()
     cfg.logcomet = args.logcomet
     if args.cfg_file is not None:
+        cfg.cfg_file = args.cfg_file
         cfg_from_file(args.cfg_file)
     if args.gpu_id != -1:
         cfg.GPU_ID = args.gpu_id
@@ -85,6 +88,8 @@ if __name__ == "__main__":
     if args.bsz is not None:
         cfg.TEST_BATCH_SIZE = args.bsz
         cfg.TRAIN.BATCH_SIZE = args.bsz
+    if args.lr is not None:
+        cfg.TRAIN.LEARNING_RATE = args.lr
     if args.start_epoch is not None:
         cfg.start_epoch = args.start_epoch
     if args.epochs is not None:
@@ -93,10 +98,13 @@ if __name__ == "__main__":
         cfg.WORKERS = args.workers
     if args.logdir:
         cfg.LOGDIR = args.logdir
+    if args.comet_project_name is not None:
+        os.environ['COMET_PROJECT_NAME'] = args.comet_project_name
 
     cfg.exp_name = cfg.LOGDIR
 
     cfg.SAMPLE = args.sample
+    cfg.manualSeed = args.manualSeed
     random.seed(args.manualSeed)
     torch.manual_seed(args.manualSeed)
     if cfg.CUDA:
