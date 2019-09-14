@@ -27,7 +27,7 @@ def load_MAC(cfg, vocab):
     for param in model_ema.parameters():
         param.requires_grad = False
 
-    if torch.cuda.is_available():
+    if torch.cuda.is_available() and cfg.CUDA:
         model.cuda()
         model_ema.cuda()
     else:
