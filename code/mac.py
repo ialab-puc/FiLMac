@@ -412,7 +412,7 @@ class QuestionToInstruction(nn.Module):
     self.encoder_embed = nn.Embedding(vocab_size + n_instructions, d_model)
     # self.encoder_embed.weight.data.uniform_(-1, 1)
     self.embedding_dropout = nn.Dropout(p=0.15)
-    self.instructions = torch.tensor([i for i in range(vocab_size, vocab_size + n_instructions)])
+    self.instructions = torch.tensor([i for i in range(vocab_size, vocab_size + n_instructions)]).cuda()
 
   def forward(self, question, question_len):
     # Delete the padding before passing to Transformer for efficiency
