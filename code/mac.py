@@ -372,6 +372,68 @@ class MACUnit(nn.Module):
 
         return memory
 
+class PositionalEncoding(nn.Module):
+    "Implement the PE function."
+    def __init__(self, d_model, dropout, max_len=5000):
+        super(PositionalEncoding, self).__init__()
+        self.dropout = nn.Dropout(p=dropout)
+        
+        # Compute the positional encodings once in log space.
+        pe = torch.zeros(max_len, d_model)
+        position = torch.arange(0., max_len).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0., d_model, 2) *
+                             -(math.log(10000.0) / d_model))
+        pe[:, 0::2] = torch.sin(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term)
+        pe = pe.unsqueeze(0)
+        self.register_buffer('pe', pe)
+        
+    def forward(self, x):
+        x = x + Variable(self.pe[:, :x.size(1)], 
+                         requires_grad=False)
+        return self.dropout(x)
+
+class QuestionToInstruction(nn.Module):
+  def __init__(self,
+               vocab_size,
+               d_model=256,
+               n_instructions=5,
+               transformer_nlayers=6,
+               transformer_heads=4,
+               PE_dropout=0.1,
+               ):
+    super(QuestionToInstruction, self).__init__()
+    self.n_instructions = n_instructions
+    self.encoderLayer = nn.TransformerEncoderLayer(d_model,transformer_heads)
+    self.transformer = nn.TransformerEncoder(self.encoderLayer,
+                                             transformer_nlayers)
+    self.PE = PositionalEncoding(d_model, PE_dropout)
+
+    self.encoder_embed = nn.Embedding(vocab_size + n_instructions, d_model)
+    # self.encoder_embed.weight.data.uniform_(-1, 1)
+    self.embedding_dropout = nn.Dropout(p=0.15)
+    self.instructions = torch.tensor([i for i in range(vocab_size, vocab_size + n_instructions)])
+
+  def forward(self, question, question_len):
+    # Delete the padding before passing to Transformer for efficiency
+    # question = question[:question_len]    
+    
+    # Transform instruction and question to embedding and add PE to question
+    embed_i = self.encoder_embed(self.instructions)
+    embed_q = self.encoder_embed(question)
+    embed_q = self.PE(embed_q)
+    embed_q = self.embedding_dropout(embed_q)
+    
+    # Transform instruction tokens to match batch size. 
+    embed_i = embed_i.unsqueeze(1).expand(self.n_instructions, question.shape[1], -1)
+    
+    # Concat instruction tokens to questions (TODO: try difference between concat at the beginning or end)
+    embed = torch.cat((embed_i, embed_q), 0)
+
+    x = self.transformer(embed)
+    return x[:self.n_instructions], x[self.n_instructions:]
+
+
 class InputUnit(nn.Module):
     def __init__(self,
                  vocab_size,
@@ -514,64 +576,3 @@ class MACNetwork(nn.Module):
 
         return out
 
-
-class PositionalEncoding(nn.Module):
-    "Implement the PE function."
-    def __init__(self, d_model, dropout, max_len=5000):
-        super(PositionalEncoding, self).__init__()
-        self.dropout = nn.Dropout(p=dropout)
-        
-        # Compute the positional encodings once in log space.
-        pe = torch.zeros(max_len, d_model)
-        position = torch.arange(0., max_len).unsqueeze(1)
-        div_term = torch.exp(torch.arange(0., d_model, 2) *
-                             -(math.log(10000.0) / d_model))
-        pe[:, 0::2] = torch.sin(position * div_term)
-        pe[:, 1::2] = torch.cos(position * div_term)
-        pe = pe.unsqueeze(0)
-        self.register_buffer('pe', pe)
-        
-    def forward(self, x):
-        x = x + Variable(self.pe[:, :x.size(1)], 
-                         requires_grad=False)
-        return self.dropout(x)
-
-class QuestionToInstruction(nn.Module):
-  def __init__(self,
-               vocab_size,
-               d_model=256,
-               n_instructions=5,
-               transformer_nlayers=6,
-               transformer_heads=4,
-               PE_dropout=0.1,
-               ):
-    super(QuestionToInstruction, self).__init__()
-    self.n_instructions = n_instructions
-    self.encoderLayer = nn.TransformerEncoderLayer(d_model,transformer_heads)
-    self.transformer = nn.TransformerEncoder(self.encoderLayer,
-                                             transformer_nlayers)
-    self.PE = PositionalEncoding(d_model, PE_dropout)
-
-    self.encoder_embed = nn.Embedding(vocab_size + n_instructions, d_model)
-    # self.encoder_embed.weight.data.uniform_(-1, 1)
-    self.embedding_dropout = nn.Dropout(p=0.15)
-    self.instructions = torch.tensor([i for i in range(vocab_size, vocab_size + n_instructions)])
-
-  def forward(self, question, question_len):
-    # Delete the padding before passing to Transformer for efficiency
-    # question = question[:question_len]    
-    
-    # Transform instruction and question to embedding and add PE to question
-    embed_i = self.encoder_embed(self.instructions)
-    embed_q = self.encoder_embed(question)
-    embed_q = self.PE(embed_q)
-    embed_q = self.embedding_dropout(embed_q)
-    
-    # Transform instruction tokens to match batch size. 
-    embed_i = embed_i.unsqueeze(1).expand(self.n_instructions, question.shape[1], -1)
-    
-    # Concat instruction tokens to questions (TODO: try difference between concat at the beginning or end)
-    embed = torch.cat((embed_i, embed_q), 0)
-
-    x = self.transformer(embed)
-    return x[:self.n_instructions], x[self.n_instructions:]
