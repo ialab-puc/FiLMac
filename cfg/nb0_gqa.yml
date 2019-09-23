@@ -1,14 +1,14 @@
 GPU_ID: '0'
 WORKERS: 1
 CUDA: True
-LOGDIR: 'ffqi_nb0_gqa_1024'
+LOGDIR: 'ffqi_nb0_gqa_512_4'
 COMET_PROJECT_NAME: 'gqa'
 
 TRAIN:
     FLAG: True
-    LEARNING_RATE: 0.0002
-    BATCH_SIZE: 128
-    MAX_EPOCHS: 40
+    LEARNING_RATE: 0.0004
+    BATCH_SIZE: 256
+    MAX_EPOCHS: 45
     SNAPSHOT_INTERVAL: 5
     WEIGHT_INIT: "xavier_uniform"
     EALRY_STOPPING: True
@@ -23,14 +23,14 @@ DATASET:
     # DATA_DIR: '/Users/sebamenabar/Documents/datasets/GQA/data'
 
 model:
-    max_step: 6
+    max_step: 4
     separate_syntax_semantics: False
     common:
-        module_dim: 1024
+        module_dim: 512
     input_unit:
         in_channels: 2048
         wordvec_dim: 300
-        rnn_dim: 1024
+        rnn_dim: 512
         bidirectional: True
         separate_syntax_semantics_embeddings: False
         stem_act: 'ELU'

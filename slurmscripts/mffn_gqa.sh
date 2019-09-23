@@ -5,7 +5,7 @@
 #SBATCH --cpus-per-task=2
 #SBATCH --output=mffin_%j.out    # Nombre del output (%j se reemplaza por el ID del trabajo)
 #SBATCH --error=mffin_%j.err     # Output de errores (opcional)
-#SBATCH --workdir=/home/samenabar/code/filmac/FiLMac   # Direccion donde correr el trabajo
+#SBATCH --workdir=/storage1/samenabar/code/filmac/FiLMac   # Direccion donde correr el trabajo
 #SBATCH --nodelist=grievous
 #SBATCH --gres=gpu:1
 ##SBATCH --gres=gpu:Geforce-RTX:1
