@@ -465,7 +465,7 @@ class InputUnit(nn.Module):
         if bidirectional:
             rnn_dim = rnn_dim // 2
 
-        # self.encoder = nn.LSTM(wordvec_dim, rnn_dim, batch_first=True, bidirectional=bidirectional)
+        self.encoder = nn.LSTM(wordvec_dim, rnn_dim, batch_first=True, bidirectional=bidirectional)
         self.transformer = QuestionToInstruction(vocab_size, wordvec_dim, 12)
         
         if self.separate_syntax_semantics_embeddings:
@@ -487,26 +487,26 @@ class InputUnit(nn.Module):
 
         question_embedding, instructions = self.transformer(question, question_len)
         question_embedding = question_embedding.permute(1,0,2)
-        # # get question and contextual word embeddings
-        # embed = self.encoder_embed(question)
-        # embed = self.embedding_dropout(embed)
-        # if self.separate_syntax_semantics_embeddings:
-        #     semantics = embed[:, :, self.wordvec_dim:]
-        #     embed = embed[:, :, :self.wordvec_dim]
-        # else:
-        #     semantics = embed
+        # get question and contextual word embeddings
+        embed = self.encoder_embed(question)
+        embed = self.embedding_dropout(embed)
+        if self.separate_syntax_semantics_embeddings:
+            semantics = embed[:, :, self.wordvec_dim:]
+            embed = embed[:, :, :self.wordvec_dim]
+        else:
+            semantics = embed
         
-        # embed = nn.utils.rnn.pack_padded_sequence(embed, question_len, batch_first=True)
+        embed = nn.utils.rnn.pack_padded_sequence(embed, question_len, batch_first=True)
         contextual_words, (question_embedding, _) = self.encoder(embed)
         
-        # if self.bidirectional:
-        #     question_embedding = torch.cat([question_embedding[0], question_embedding[1]], -1)
-        # question_embedding = self.question_dropout(question_embedding)
+        if self.bidirectional:
+            question_embedding = torch.cat([question_embedding[0], question_embedding[1]], -1)
+        question_embedding = self.question_dropout(question_embedding)
 
         contextual_words, _ = nn.utils.rnn.pad_packed_sequence(contextual_words, batch_first=True)
         
-        # if self.separate_syntax_semantics:
-        #     contextual_words = (contextual_words, semantics)
+        if self.separate_syntax_semantics:
+            contextual_words = (contextual_words, semantics)
         
         return question_embedding, contextual_words, img, instructions
 
