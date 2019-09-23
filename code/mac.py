@@ -497,13 +497,13 @@ class InputUnit(nn.Module):
         #     semantics = embed
         
         # embed = nn.utils.rnn.pack_padded_sequence(embed, question_len, batch_first=True)
-        # contextual_words, (question_embedding, _) = self.encoder(embed)
+        contextual_words, (question_embedding, _) = self.encoder(embed)
         
         # if self.bidirectional:
         #     question_embedding = torch.cat([question_embedding[0], question_embedding[1]], -1)
         # question_embedding = self.question_dropout(question_embedding)
 
-        # contextual_words, _ = nn.utils.rnn.pad_packed_sequence(contextual_words, batch_first=True)
+        contextual_words, _ = nn.utils.rnn.pad_packed_sequence(contextual_words, batch_first=True)
         
         # if self.separate_syntax_semantics:
         #     contextual_words = (contextual_words, semantics)
