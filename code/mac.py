@@ -179,6 +179,9 @@ class ReadUnit(nn.Module):
 
         self.film_from = film_from
 
+        self.beta_idty = nn.Identity()
+        self.gamma_idty = nn.Identity()
+
     def forward(self, memory, know, control, question_i, memDpMask=None):
         """
         Args:
@@ -201,6 +204,8 @@ class ReadUnit(nn.Module):
         elif self.film_from == 'control':
             film = self.film_generator(control).view(batch_size, self.num_blocks,  self.cond_feat_size)
         gammas, betas = torch.split(film[:,:,:2*self.module_dim], self.module_dim, dim=-1)
+        gammas = self.gamma_idty(gammas)
+        betas = self.beta_idty(betas)
         for i in range(len(self.res_blocks)):
             know = self.res_blocks[i](know, gammas[:, i, :], betas[:, i, :])
 
