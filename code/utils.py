@@ -108,7 +108,10 @@ def cfg_to_exp_name(cfg):
     module_dim = cfg.model.common.module_dim
     max_step = cfg.model.max_step
     num_blocks = cfg.model.read_unit.num_blocks
-    film_from = cfg.model.read_unit.film_from
+    if cfg.model.read_unit.film_from == 'control':
+        film_from = 'c'
+    elif cfg.model.read_unit.film_from == 'qi':
+        film_from = 'qi'
     
     exp_name = f'{max_step}_{module_dim}_nb{num_blocks}'
     exp_name += f'_ff{film_from}'

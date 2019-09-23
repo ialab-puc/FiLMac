@@ -292,8 +292,8 @@ class Trainer():
                 self.comet_exp.log_metrics(dict, epoch=epoch + 1,)
 
             if cfg.TRAIN.EALRY_STOPPING:
-                # if epoch - cfg.TRAIN.PATIENCE == self.previous_best_epoch:
-                if epoch - cfg.TRAIN.PATIENCE == self.previous_best_loss_epoch:
+                if epoch - cfg.TRAIN.PATIENCE == self.previous_best_epoch:
+                # if epoch - cfg.TRAIN.PATIENCE == self.previous_best_loss_epoch:
                     print('Early stop')
                     break
 
