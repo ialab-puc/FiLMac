@@ -176,10 +176,9 @@ class ReadUnit(nn.Module):
             self.res_blocks.append(FiLMBlock(self.module_dim, dropout=0.18, batchnorm_affine=False))
         self.res_blocks = nn.ModuleList(self.res_blocks) 
         self.film_generator = nn.Linear(self.module_dim, self.cond_feat_size * self.num_blocks)
-
         self.film_from = film_from
 
-    def forward(self, memory, know, control, question_i, memDpMask=None):
+    def forward(self, memory, know, control, question_i, instruction, memDpMask=None):
         """
         Args:
             memory: the cell's memory state
@@ -200,6 +199,8 @@ class ReadUnit(nn.Module):
             film = self.film_generator(question_i).view(batch_size, self.num_blocks,  self.cond_feat_size)
         elif self.film_from == 'control':
             film = self.film_generator(control).view(batch_size, self.num_blocks,  self.cond_feat_size)
+        elif self.film_from == 'transformer':
+            film = self.film_generator(instruction).view(batch_size, self.num_blocks,  self.cond_feat_size)
         gammas, betas = torch.split(film[:,:,:2*self.module_dim], self.module_dim, dim=-1)
         for i in range(len(self.res_blocks)):
             know = self.res_blocks[i](know, gammas[:, i, :], betas[:, i, :])
@@ -349,7 +350,7 @@ class MACUnit(nn.Module):
 
         return initial_control, initial_memory, memDpMask
 
-    def forward(self, context, question, knowledge, question_lengths):
+    def forward(self, context, question, knowledge, question_lengths, instructions):
         batch_size = question.size(0)
         control, memory, memDpMask = self.zero_state(batch_size, question)
         controls = [control.unsqueeze(1)]
@@ -357,10 +358,9 @@ class MACUnit(nn.Module):
 
         for i in range(self.max_step):
             # control unit
-
             control, question_i = self.control(question, context, question_lengths, i, prev_control=control)
             # read unit
-            info = self.read(memory, knowledge, control, question_i, memDpMask)
+            info = self.read(memory, knowledge, control, question_i, instructions[i], memDpMask)
             # write unit
             memory = self.write(memory, info, control,
                     prev_controls=controls, prev_memories=memories,
@@ -411,6 +411,8 @@ class InputUnit(nn.Module):
         self.embedding_dropout = nn.Dropout(p=0.15)
         self.question_dropout = nn.Dropout(p=0.08)
 
+        self.transformer = QuestionToInstruction(vocab_size, wordvec_dim, 12)
+
     def forward(self, image, question, question_len):
         b_size = question.size(0)
 
@@ -419,28 +421,30 @@ class InputUnit(nn.Module):
         img = img.view(b_size, self.dim, -1)
         img = img.permute(0,2,1)
 
-        # get question and contextual word embeddings
-        embed = self.encoder_embed(question)
-        embed = self.embedding_dropout(embed)
-        if self.separate_syntax_semantics_embeddings:
-            semantics = embed[:, :, self.wordvec_dim:]
-            embed = embed[:, :, :self.wordvec_dim]
-        else:
-            semantics = embed
+        question_embedding, instructions = self.transformer(question, question_len)
+        question_embedding = question_embedding.permute(1,0,2)
+        # # get question and contextual word embeddings
+        # embed = self.encoder_embed(question)
+        # embed = self.embedding_dropout(embed)
+        # if self.separate_syntax_semantics_embeddings:
+        #     semantics = embed[:, :, self.wordvec_dim:]
+        #     embed = embed[:, :, :self.wordvec_dim]
+        # else:
+        #     semantics = embed
         
-        embed = nn.utils.rnn.pack_padded_sequence(embed, question_len, batch_first=True)
-        contextual_words, (question_embedding, _) = self.encoder(embed)
+        # embed = nn.utils.rnn.pack_padded_sequence(embed, question_len, batch_first=True)
+        # contextual_words, (question_embedding, _) = self.encoder(embed)
         
-        if self.bidirectional:
-            question_embedding = torch.cat([question_embedding[0], question_embedding[1]], -1)
-        question_embedding = self.question_dropout(question_embedding)
+        # if self.bidirectional:
+        #     question_embedding = torch.cat([question_embedding[0], question_embedding[1]], -1)
+        # question_embedding = self.question_dropout(question_embedding)
 
-        contextual_words, _ = nn.utils.rnn.pad_packed_sequence(contextual_words, batch_first=True)
+        # contextual_words, _ = nn.utils.rnn.pad_packed_sequence(contextual_words, batch_first=True)
         
-        if self.separate_syntax_semantics:
-            contextual_words = (contextual_words, semantics)
+        # if self.separate_syntax_semantics:
+        #     contextual_words = (contextual_words, semantics)
         
-        return question_embedding, contextual_words, img
+        return question_embedding, contextual_words, img, instructions
 
 
 class OutputUnit(nn.Module):
@@ -500,12 +504,74 @@ class MACNetwork(nn.Module):
 
     def forward(self, image, question, question_len):
         # get image, word, and sentence embeddings
-        question_embedding, contextual_words, img = self.input_unit(image, question, question_len)
+        question_embedding, contextual_words, img, instructions = self.input_unit(image, question, question_len)
 
         # apply MacCell
-        memory = self.mac(contextual_words, question_embedding, img, question_len)
+        memory = self.mac(contextual_words, question_embedding, img, question_len, instructions)
 
         # get classification
         out = self.output_unit(question_embedding, memory)
 
         return out
+
+
+class PositionalEncoding(nn.Module):
+    "Implement the PE function."
+    def __init__(self, d_model, dropout, max_len=5000):
+        super(PositionalEncoding, self).__init__()
+        self.dropout = nn.Dropout(p=dropout)
+        
+        # Compute the positional encodings once in log space.
+        pe = torch.zeros(max_len, d_model)
+        position = torch.arange(0., max_len).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0., d_model, 2) *
+                             -(math.log(10000.0) / d_model))
+        pe[:, 0::2] = torch.sin(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term)
+        pe = pe.unsqueeze(0)
+        self.register_buffer('pe', pe)
+        
+    def forward(self, x):
+        x = x + Variable(self.pe[:, :x.size(1)], 
+                         requires_grad=False)
+        return self.dropout(x)
+
+class QuestionToInstruction(nn.Module):
+  def __init__(self,
+               vocab_size,
+               d_model=256,
+               n_instructions=5,
+               transformer_nlayers=6,
+               transformer_heads=4,
+               PE_dropout=0.1,
+               ):
+    super(QuestionToInstruction, self).__init__()
+    self.n_instructions = n_instructions
+    self.encoderLayer = nn.TransformerEncoderLayer(d_model,transformer_heads)
+    self.transformer = nn.TransformerEncoder(self.encoderLayer,
+                                             transformer_nlayers)
+    self.PE = PositionalEncoding(d_model, PE_dropout)
+
+    self.encoder_embed = nn.Embedding(vocab_size + n_instructions, d_model)
+    # self.encoder_embed.weight.data.uniform_(-1, 1)
+    self.embedding_dropout = nn.Dropout(p=0.15)
+    self.instructions = torch.tensor([i for i in range(vocab_size, vocab_size + n_instructions)])
+
+  def forward(self, question, question_len):
+    # Delete the padding before passing to Transformer for efficiency
+    # question = question[:question_len]    
+    
+    # Transform instruction and question to embedding and add PE to question
+    embed_i = self.encoder_embed(self.instructions)
+    embed_q = self.encoder_embed(question)
+    embed_q = self.PE(embed_q)
+    embed_q = self.embedding_dropout(embed_q)
+    
+    # Transform instruction tokens to match batch size. 
+    embed_i = embed_i.unsqueeze(1).expand(self.n_instructions, question.shape[1], -1)
+    
+    # Concat instruction tokens to questions (TODO: try difference between concat at the beginning or end)
+    embed = torch.cat((embed_i, embed_q), 0)
+
+    x = self.transformer(embed)
+    return x[:self.n_instructions], x[self.n_instructions:]

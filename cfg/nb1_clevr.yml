@@ -25,7 +25,7 @@ model:
     max_step: 12
     separate_syntax_semantics: False
     common:
-        module_dim: 512
+        module_dim: 300
     input_unit:
         wordvec_dim: 300
         rnn_dim: 512
@@ -37,7 +37,7 @@ model:
         control_cont_activation: 'TANH'
     read_unit:
         num_blocks: 1
-        film_from: 'qi'
+        film_from: 'transformer'
     write_unit:
         rtom: False
         self_attn: True
