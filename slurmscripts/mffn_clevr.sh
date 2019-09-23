@@ -16,7 +16,7 @@ pwd; hostname; date
 
 echo "Inicio entrenamiento Maffn"
 
-source ~/.venvs/cuda10/bin/activate
+source ~../samenabar/.venvs/cuda10/bin/activate
 
 # python3 code/main.py --cfg cfg/nb1_gqa.yml --logcomet > nb1_gqa_$SLURM_JOBID.out 2>&1 &
 # python3 code/main.py --cfg cfg/nb0_gqa.yml --logcomet > nb0_gqa_$SLURM_JOBID.out 2>&1 &
