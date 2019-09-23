@@ -465,7 +465,9 @@ class InputUnit(nn.Module):
         if bidirectional:
             rnn_dim = rnn_dim // 2
 
-        self.encoder = nn.LSTM(wordvec_dim, rnn_dim, batch_first=True, bidirectional=bidirectional)
+        # self.encoder = nn.LSTM(wordvec_dim, rnn_dim, batch_first=True, bidirectional=bidirectional)
+        self.transformer = QuestionToInstruction(vocab_size, wordvec_dim, 12)
+        
         if self.separate_syntax_semantics_embeddings:
             wordvec_dim *= 2
         self.encoder_embed = nn.Embedding(vocab_size, wordvec_dim)
@@ -473,7 +475,7 @@ class InputUnit(nn.Module):
         self.embedding_dropout = nn.Dropout(p=0.15)
         self.question_dropout = nn.Dropout(p=0.08)
 
-        self.transformer = QuestionToInstruction(vocab_size, wordvec_dim, 12)
+        self.transformer.cuda()
 
     def forward(self, image, question, question_len):
         b_size = question.size(0)
