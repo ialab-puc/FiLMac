@@ -157,6 +157,10 @@ class StepFilm(nn.Module):
     
   def forward(self, question, question_len, image):
     instructions = self.question_to_instruction(question, question_len)
+    print('Ahora vienen')
+    print(batch_size)
+    print(question.shape)
+    print(image.shape)
     batch_size = instructions.shape[1]
     img = self.img_input(image)
     img = img.view(batch_size, self.cnn_dim, -1)
