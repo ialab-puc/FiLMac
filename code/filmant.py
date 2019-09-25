@@ -156,12 +156,13 @@ class StepFilm(nn.Module):
     
     
   def forward(self, question, question_len, image):
+    question = question.permute(1,0)
     instructions = self.question_to_instruction(question, question_len)
     batch_size = instructions.shape[1]
-    print('Ahora vienen')
-    print(batch_size)
-    print(question.shape)
-    print(image.shape)
+    # print('Ahora vienen')
+    # print(batch_size)
+    # print(question.shape)
+    # print(image.shape)
     img = self.img_input(image)
     img = img.view(batch_size, self.cnn_dim, -1)
     img = img.permute(0,2,1)
