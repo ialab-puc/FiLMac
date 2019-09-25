@@ -116,7 +116,7 @@ class Trainer():
         # load model
         self.vocab = load_vocab(cfg)
         # self.model, self.model_ema = mac.load_MAC(cfg, self.vocab)
-        self.model = filmant.load_filmant(self.vocab)
+        self.model = filmant.load_filmant(self.vocab, cfg)
 
         # self.weight_moving_average(alpha=0)
         if cfg.TRAIN.RADAM:
