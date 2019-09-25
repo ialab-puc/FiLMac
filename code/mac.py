@@ -199,13 +199,17 @@ class ReadUnit(nn.Module):
         """
         ## Step 0: Apply FiLMBlocks
         batch_size, _ = control.size()
-        if self.film_from == 'qi':
+        if self.film_from == 'qi' or self.film_from == 'mac':
             film = self.film_generator(question_i).view(batch_size, self.num_blocks,  self.cond_feat_size)
         elif self.film_from == 'control':
             film = self.film_generator(control).view(batch_size, self.num_blocks,  self.cond_feat_size)
         gammas, betas = torch.split(film[:,:,:2*self.module_dim], self.module_dim, dim=-1)
         gammas = self.gamma_idty(gammas)
         betas = self.beta_idty(betas)
+        if self.film_from == 'mac':
+            gammas = torch.ones_like(gammas)
+            betas = torch.zeros_like(betas)
+
         for i in range(len(self.res_blocks)):
             know = self.res_blocks[i](know, gammas[:, i, :], betas[:, i, :])
 

@@ -112,6 +112,8 @@ def cfg_to_exp_name(cfg):
         film_from = 'c'
     elif cfg.model.read_unit.film_from == 'qi':
         film_from = 'qi'
+    elif cfg.model.read_unit.film_from == 'mac':
+        film_from = 'mac'
     
     exp_name = f'{max_step}_{module_dim}_nb{num_blocks}'
     exp_name += f'_ff{film_from}'
