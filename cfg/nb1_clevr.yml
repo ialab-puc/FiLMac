@@ -2,7 +2,7 @@ GPU_ID: '0'
 WORKERS: 1
 CUDA: True
 LOGDIR: 'nb1_clevr'
-COMET_PROJECT_NAME: 'clevr'
+COMET_PROJECT_NAME: 'filmant-clevr'
 
 TRAIN:
     FLAG: True
