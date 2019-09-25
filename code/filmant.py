@@ -88,8 +88,8 @@ class QuestionToInstruction(nn.Module):
     self.instructions = torch.tensor([i for i in range(vocab_size, vocab_size + n_instructions)]).cuda()
 
   def forward(self, question, question_len):
-    # Delete the padding before passing to Transformer for efficiency
-    question = question[:question_len]    
+    # # Delete the padding before passing to Transformer for efficiency
+    # question = question[:question_len]    
     
     # Transform instruction and question to embedding and add PE to question
     embed_i = self.encoder_embed(self.instructions)

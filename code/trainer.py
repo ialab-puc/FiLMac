@@ -241,10 +241,6 @@ class Trainer():
             # (2) Train Model
             ############################
             self.optimizer.zero_grad()
-
-            print('Ahora vienen')
-            print(question_len)
-            print(type(question_len))
             scores = self.model(question, question_len, image)
             loss = self.loss_fn(scores, answer)
             loss.backward()
