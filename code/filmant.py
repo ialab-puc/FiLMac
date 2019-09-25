@@ -4,9 +4,9 @@ import math
 from torch.autograd import Variable
 
 def load_filmant(vocab):
-	vocab_size = len(vocab['question_token_to_idx'])
-	num_answers = len(vocab['answer_token_to_idx'])
-	if torch.cuda.is_available() and cfg.CUDA:
+    vocab_size = len(vocab['question_token_to_idx'])
+    num_answers = len(vocab['answer_token_to_idx'])
+    if torch.cuda.is_available() and cfg.CUDA:
         model.cuda()
     else:
         model.cpu()
