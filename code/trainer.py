@@ -242,7 +242,7 @@ class Trainer():
             ############################
             self.optimizer.zero_grad()
 
-            scores = self.model(image, question, question_len)
+            scores = self.model(question, question_len, image)
             loss = self.loss_fn(scores, answer)
             loss.backward()
 
