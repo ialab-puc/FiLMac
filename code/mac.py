@@ -125,10 +125,11 @@ class ControlUnit(nn.Module):
         return next_control, question
 
 class FiLMBlock(nn.Module):
-    def __init__(self, module_dim, dropout=5e-2, batchnorm_affine=False):
+    def __init__(self, in_channels, module_dim, dropout=5e-2, batchnorm_affine=False):
         super(FiLMBlock, self).__init__()
+        self.module_dim = module_dim
         self.dropout = nn.Dropout(dropout)
-        self.input_proj = nn.Conv2d(module_dim, module_dim, kernel_size=1, stride=1, padding=0)
+        self.input_proj = nn.Conv2d(in_channels, module_dim, kernel_size=1, stride=1, padding=0)
         self.relu = nn.ReLU()
         self.conv1 = nn.Conv2d(module_dim, module_dim, kernel_size=3, stride=1, padding=1)
         self.bn1 = nn.BatchNorm2d(module_dim, affine=batchnorm_affine)
@@ -147,7 +148,7 @@ class FiLMBlock(nn.Module):
         out = self.apply_film(out, gamma, beta)
         out = self.relu(self.dropout(out))
         residual = out + x
-        return residual.permute(0, 2, 3, 1).view(batch_size, hw, module_dim)
+        return residual.permute(0, 2, 3, 1).view(batch_size, hw, self.module_dim)
 
     def apply_film(self, x, gammas, betas):
         gammas = gammas.unsqueeze(2).unsqueeze(3).expand_as(x)
@@ -155,7 +156,7 @@ class FiLMBlock(nn.Module):
         return (x * gammas) + betas
 
 class ReadUnit(nn.Module):
-    def __init__(self, module_dim, num_blocks, film_from):
+    def __init__(self, module_dim, num_blocks, film_from, in_channels=512, use_stem=True):
         super().__init__()
 
         self.concat = nn.Linear(module_dim * 2, module_dim)
@@ -173,7 +174,8 @@ class ReadUnit(nn.Module):
         self.cond_feat_size = 2 * module_dim
         self.res_blocks = []
         for _ in range(num_blocks):
-            self.res_blocks.append(FiLMBlock(self.module_dim, dropout=0.18, batchnorm_affine=False))
+            self.res_blocks.append(FiLMBlock(self.module_dim, self.module_dim, dropout=0.18, batchnorm_affine=False))
+        if not use_stem and self.num_blocks > 0: self.res_blocks[0] = FiLMBlock(in_channels, self.module_dim, dropout=0.18, batchnorm_affine=False)
         self.res_blocks = nn.ModuleList(self.res_blocks) 
         self.film_generator = nn.Linear(self.module_dim, self.cond_feat_size * self.num_blocks)
 
@@ -181,6 +183,7 @@ class ReadUnit(nn.Module):
 
         self.beta_idty = nn.Identity()
         self.gamma_idty = nn.Identity()
+        self.res_block_idty = nn.Identity()
 
     def forward(self, memory, know, control, question_i, memDpMask=None):
         """
@@ -212,6 +215,7 @@ class ReadUnit(nn.Module):
 
         for i in range(len(self.res_blocks)):
             know = self.res_blocks[i](know, gammas[:, i, :], betas[:, i, :])
+        know = self.res_block_idty(know)
 
         ## Step 1: knowledge base / memory interactions
         # compute interactions between knowledge base and memory
@@ -392,6 +396,8 @@ class InputUnit(nn.Module):
                  separate_syntax_semantics_embeddings=False,
                  stem_act='ELU',
                  in_channels=1024,
+                 num_blocks=3,
+                 use_stem=True,
                 ):
         super(InputUnit, self).__init__()
 
@@ -399,14 +405,25 @@ class InputUnit(nn.Module):
         self.wordvec_dim = wordvec_dim
         self.separate_syntax_semantics = separate_syntax_semantics
         self.separate_syntax_semantics_embeddings = separate_syntax_semantics and separate_syntax_semantics_embeddings
+        self.features_idty = nn.Identity()
+        self.stem_idty = nn.Identity()
+        self.use_stem = use_stem
+        self.num_blocks = num_blocks
 
         stem_act = acts[stem_act]
-        self.stem = nn.Sequential(nn.Dropout(p=0.18),
-                                  nn.Conv2d(in_channels, module_dim, 3, 1, 1),
-                                  stem_act(),
-                                  nn.Dropout(p=0.18),
-                                  nn.Conv2d(module_dim, module_dim, kernel_size=3, stride=1, padding=1),
-                                  stem_act())
+        if use_stem:
+            self.stem = nn.Sequential(nn.Dropout(p=0.18),
+                                      nn.Conv2d(in_channels, module_dim, 3, 1, 1),
+                                      stem_act(),
+                                      nn.Dropout(p=0.18),
+                                      nn.Conv2d(module_dim, module_dim, kernel_size=3, stride=1, padding=1),
+                                      stem_act())
+        if not use_stem: 
+            self.stem = nn.Identity()
+
+        if not use_stem and self.num_blocks == 0:
+            dim_red = int(in_channels / module_dim)
+            self.stem_red = nn.MaxPool1d(dim_red, stride=dim_red)
 
         self.bidirectional = bidirectional
         if bidirectional:
@@ -424,9 +441,14 @@ class InputUnit(nn.Module):
         b_size = question.size(0)
 
         # get image features
+        image = self.features_idty(image)
         img = self.stem(image)
-        img = img.view(b_size, self.dim, -1)
+        img = self.stem_idty(img)
+        img = img.view(b_size, img.size(1), -1)
         img = img.permute(0,2,1)
+        if not self.use_stem and self.num_blocks == 0:
+            img = self.stem_red(img)
+
 
         # get question and contextual word embeddings
         embed = self.encoder_embed(question)

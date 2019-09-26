@@ -110,7 +110,7 @@ def showTableAtt(table, words, tax=None):
 def sigmoid(x):
     return 1 / (1 + np.exp(-x))
 
-def showImgAtt(img, atts, step, ax):
+def showImgAtt(img, atts, step, ax, vis='attn'):
     dx, dy = 0.05, 0.05
     x = np.arange(-1.5, 1.5, dx)
     y = np.arange(-1.0, 1.0, dy)
@@ -123,10 +123,15 @@ def showImgAtt(img, atts, step, ax):
     img1 = ax.imshow(img, interpolation="nearest", extent=extent)
 
     att = atts[step][0]
-
-    low = att.min().item()
-    high = att.max().item()
-    att = sigmoid(((att - low) / (high - low)) * 20 - 10)
+    if vis == 'attn':
+        low = att.min().item()
+        high = att.max().item()
+        att = sigmoid(((att - low) / (high - low)) * 20 - 10)
+    elif vis == 'know':
+        f_map = (att ** 2).mean(-1).sqrt()
+        f_map_shifted = f_map - f_map.min().expand_as(f_map)
+        f_map_scaled = f_map_shifted / f_map_shifted.max().expand_as(f_map_shifted)
+        att = f_map_scaled
 
     ax.imshow(att.reshape((dim, dim)),
               cmap=plt.get_cmap('custom'),
@@ -251,6 +256,7 @@ def plot_word_img_attn(
         image_filename,
         pred,
         gt,
+        vis='attn'
     ):
     fig = plt.figure(figsize=(16, 2 * num_steps + 4))
 
@@ -293,8 +299,12 @@ def plot_word_img_attn(
 
     for i in range(num_steps):
         ax = ax_images[i]
+        if vis == 'attn':
+            mid_output = mid_outputs['kb_attn']
+        elif vis == 'know':
+            mid_output = mid_outputs['res_block_idty']
         showImgAtt(get_image(image_path),
-                   mid_outputs['kb_attn'], i, ax)
+                   mid_output, i, ax, vis)
         if i == (num_steps - 1):
             setlabel(ax, f'{pred} ({gt.upper()})')
         else:

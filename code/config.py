@@ -59,6 +59,8 @@ __C.model = edict(
         separate_syntax_semantics_embeddings=False,
         stem_act='ELU',
         in_channels=1024,
+        num_blocks=3,
+        use_stem=True,
         ),
     control_unit=edict(
         control_feed_prev=True,
@@ -67,6 +69,8 @@ __C.model = edict(
     read_unit=edict(
         num_blocks=3,
         film_from=None,
+        in_channels=1024,
+        use_stem=True,
     ),
     write_unit=edict(
         rtom=False,
