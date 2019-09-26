@@ -161,6 +161,8 @@ class Trainer():
         self.comet_exp.set_model_graph(str(self.model))
         if cfg.cfg_file:
             self.comet_exp.log_asset(cfg.cfg_file)
+        with open(os.path.join(self.path, 'cfg.json'), 'w') as f:
+            json.dump(cfg, f)
 
     def print_info(self):
         print('Using config:')
