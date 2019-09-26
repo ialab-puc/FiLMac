@@ -27,9 +27,10 @@ from config import cfg
 
 
 class ClevrDataset(data.Dataset):
-    def __init__(self, data_dir, split='train', sample=False):
+    def __init__(self, data_dir, split='train', sample=False, ignore_idx=False):
 
         self.sample = sample
+        self.ignore_idx = ignore_idx
         if sample:
             sample = '_sample'
         else:
@@ -43,7 +44,7 @@ class ClevrDataset(data.Dataset):
         imgfile, question, answer, family = self.data[index]
         id = int(imgfile.rsplit('_', 1)[1][:-4])
         img = torch.from_numpy(self.img[id])
-
+        if self.ignore_idx: question.remove(self.ignore_idx)
         return img, question, len(question), answer, family
 
     def __len__(self):
@@ -72,9 +73,10 @@ def collate_fn(batch):
 
 
 class GQADataset(data.Dataset):
-    def __init__(self, data_dir, split='train', sample=False):
+    def __init__(self, data_dir, split='train', sample=False, ignore_idx=False):
 
         self.sample = sample
+        self.ignore_idx = ignore_idx
         if sample:
             sample = '_sample'
         else:
@@ -90,7 +92,7 @@ class GQADataset(data.Dataset):
         imgid, question, answer, group, questionid = self.data[index]
         imgidx = self.spatial_info[imgid]['index']
         img = torch.from_numpy(self.img[imgidx])
-
+        if self.ignore_idx: question.remove(self.ignore_idx)
         return img, question, len(question), answer, group, questionid, imgid
 
     def __len__(self):

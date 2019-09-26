@@ -46,6 +46,7 @@ __C.DATASET = edict()
 __C.DATASET.DATASET = 'clevr'
 __C.DATASET.DATA_DIR = ''
 __C.DATASET.COGENT = ''
+__C.DATASET.IGNORE_TOKEN = ''
 # __C.DATASET = dict(__C.DATASET)
 __C.model = edict(
     init_mem='random',

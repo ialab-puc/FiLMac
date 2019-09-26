@@ -22,6 +22,7 @@ TRAIN:
 DATASET:
     # DATA_DIR: '/storage1/datasets/CLEVR_v1.0/features'
     DATA_DIR: '/Users/sebamenabar/Documents/datasets/CLEVR/CLEVR_v1.0/data'
+    IGNORE_TOKEN: ''
 
 model:
     max_step: 4

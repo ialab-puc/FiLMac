@@ -77,13 +77,19 @@ class Trainer():
         if cogent and cfg.DATASET.DATASET == 'clevr':
             print(f'Using CoGenT {cogent.upper()}')
         sample = cfg.SAMPLE
+
+        # load vocab
+        self.vocab = load_vocab(cfg)
+        if cfg.DATASET.IGNORE_TOKEN: 
+            ignore_idx = self.vocab['question_token_to_idx'][cfg.DATASET.IGNORE_TOKEN]
+
         if cfg.TRAIN.FLAG:
             if cfg.DATASET.DATASET == 'clevr':
-                self.dataset = ClevrDataset(data_dir=self.data_dir, split="train" + cogent, sample=sample)
+                self.dataset = ClevrDataset(data_dir=self.data_dir, split="train" + cogent, sample=sample, ignore_idx=ignore_idx)
                 self.dataloader = DataLoader(dataset=self.dataset, batch_size=cfg.TRAIN.BATCH_SIZE, shuffle=True,
                                             num_workers=cfg.WORKERS, drop_last=True, collate_fn=collate_fn)
             elif cfg.DATASET.DATASET == 'gqa':
-                self.dataset = GQADataset(data_dir=self.data_dir, split="train", sample=sample)
+                self.dataset = GQADataset(data_dir=self.data_dir, split="train", sample=sample, ignore_idx=ignore_idx)
                 self.dataloader = DataLoader(dataset=self.dataset, batch_size=cfg.TRAIN.BATCH_SIZE, shuffle=True,
                                             num_workers=cfg.WORKERS, drop_last=True, collate_fn=collate_fn_gqa)
 
@@ -93,27 +99,26 @@ class Trainer():
 
         if cfg.TRAIN.FLAG or cfg.EVAL:
             if cfg.DATASET.DATASET == 'clevr':
-                self.dataset_val = ClevrDataset(data_dir=self.data_dir, split="val" + cogent, sample=sample)
+                self.dataset_val = ClevrDataset(data_dir=self.data_dir, split="val" + cogent, sample=sample, ignore_idx=ignore_idx)
                 self.dataloader_val = DataLoader(dataset=self.dataset_val, batch_size=cfg.TEST_BATCH_SIZE, drop_last=False,
                                                 shuffle=False, num_workers=cfg.WORKERS, collate_fn=collate_fn)
             elif cfg.DATASET.DATASET == 'gqa':
-                self.dataset_val = GQADataset(data_dir=self.data_dir, split="val", sample=sample)
+                self.dataset_val = GQADataset(data_dir=self.data_dir, split="val", sample=sample, ignore_idx=ignore_idx)
                 self.dataloader_val = DataLoader(dataset=self.dataset_val, batch_size=cfg.TEST_BATCH_SIZE, shuffle=False,
                                             num_workers=cfg.WORKERS, drop_last=False, collate_fn=collate_fn_gqa)
 
         elif cfg.TEST:
             if cfg.DATASET.DATASET == 'clevr':
-                self.dataset_val = ClevrDataset(data_dir=self.data_dir, split="test" + cogent, sample=sample)
+                self.dataset_val = ClevrDataset(data_dir=self.data_dir, split="test" + cogent, sample=sample, ignore_idx=ignore_idx)
                 self.dataloader_val = DataLoader(dataset=self.dataset_val, batch_size=cfg.TEST_BATCH_SIZE, drop_last=False,
                                                 shuffle=False, num_workers=cfg.WORKERS, collate_fn=collate_fn)
             elif cfg.DATASET.DATASET == 'gqa':
-                self.dataset_val = GQADataset(data_dir=self.data_dir, split="testdev", sample=sample)
+                self.dataset_val = GQADataset(data_dir=self.data_dir, split="testdev", sample=sample, ignore_idx=ignore_idx)
                 self.dataloader_val = DataLoader(dataset=self.dataset_val, batch_size=cfg.TEST_BATCH_SIZE, drop_last=False,
                                                 shuffle=False, num_workers=cfg.WORKERS, collate_fn=collate_fn_gqa)
 
 
         # load model
-        self.vocab = load_vocab(cfg)
         self.model, self.model_ema = mac.load_MAC(cfg, self.vocab)
             
         self.weight_moving_average(alpha=0)
