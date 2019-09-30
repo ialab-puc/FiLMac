@@ -77,8 +77,8 @@ class QuestionToInstruction(nn.Module):
                ):
     super(QuestionToInstruction, self).__init__()
     self.n_instructions = n_instructions
-    self.encoderLayer = nn.TransformerEncoderLayer(d_model,transformer_heads)
-    self.transformer = nn.TransformerEncoder(self.encoderLayer,
+    encoderLayer = nn.TransformerEncoderLayer(d_model,transformer_heads)
+    self.transformer = nn.TransformerEncoder(encoderLayer,
                                              transformer_nlayers)
     self.PE = PositionalEncoding(d_model, PE_dropout)
 
