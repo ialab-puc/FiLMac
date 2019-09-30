@@ -242,6 +242,8 @@ class Trainer():
                 ############################
                 self.optimizer.zero_grad()
                 scores = self.model(question, question_len, image)
+                print(f"Scores: {scores}")
+                print(f"answer: {answer}")
                 loss = self.loss_fn(scores, answer)
                 loss.backward()
 
@@ -249,10 +251,10 @@ class Trainer():
                     torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.cfg.TRAIN.CLIP)
 
                 self.optimizer.step()
-                for name, param in self.model.named_parameters():
-                    if torch.isnan(param).any():
-                        print(name)
-                        exit(0)
+                # for name, param in self.model.named_parameters():
+                #     if torch.isnan(param).any():
+                #         print(name)
+                #         exit(0)
 
                 # self.weight_moving_average()
 
