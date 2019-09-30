@@ -249,7 +249,7 @@ class Trainer():
                 torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.cfg.TRAIN.CLIP)
 
             self.optimizer.step()
-            for name, param in model.named_parameters():
+            for name, param in self.model.named_parameters():
                 if torch.isnan(param).any():
                     print(name)
                     exit(0)
