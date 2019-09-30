@@ -276,7 +276,8 @@ class Trainer():
             
         except Exception as e:
             for name, param in self.model.named_parameters():
-                print(name, torch.norm(param))
+                print(name, torch.norm(param).item())
+                print(torch.norm(param.grad).item())
             raise e
 
         self.total_epoch_loss = avg_loss
