@@ -10,7 +10,7 @@ from six.moves import range
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.autograd import Variable
+from torch.autograd import Variable, detect_anomaly
 import torch.backends.cudnn as cudnn
 from torch.utils.data import DataLoader
 
@@ -19,6 +19,7 @@ from tqdm import tqdm
 from comet_ml import Experiment
 from tensorboardX import SummaryWriter
 
+import filmant as filmant
 import mac as mac
 from radam import RAdam
 from datasets import ClevrDataset, collate_fn, GQADataset, collate_fn_gqa
@@ -119,9 +120,11 @@ class Trainer():
 
 
         # load model
-        self.model, self.model_ema = mac.load_MAC(cfg, self.vocab)
-            
-        self.weight_moving_average(alpha=0)
+        self.vocab = load_vocab(cfg)
+        # self.model, self.model_ema = mac.load_MAC(cfg, self.vocab)
+        self.model = filmant.load_filmant(self.vocab, cfg)
+
+        # self.weight_moving_average(alpha=0)
         if cfg.TRAIN.RADAM:
             self.optimizer = RAdam(self.model.parameters(), lr=self.lr)
         else:
@@ -134,8 +137,8 @@ class Trainer():
             self.model.load_state_dict(state['model'])
             self.optimizer.load_state_dict(state['optim'])
             self.start_epoch = state['iter'] + 1
-            state = torch.load(cfg.resume_model_ema, map_location=location)
-            self.model_ema.load_state_dict(state['model'])
+            # state = torch.load(cfg.resume_model_ema, map_location=location)
+            # self.model_ema.load_state_dict(state['model'])
 
         if cfg.start_epoch is not None:
             self.start_epoch = cfg.start_epoch
@@ -183,18 +186,18 @@ class Trainer():
         pprint.pprint(self.model)
         print("\n")
 
-    def weight_moving_average(self, alpha=0.999):
-        for param1, param2 in zip(self.model_ema.parameters(), self.model.parameters()):
-            param1.data *= alpha
-            param1.data += (1.0 - alpha) * param2.data
+    # def weight_moving_average(self, alpha=0.999):
+    #     for param1, param2 in zip(self.model_ema.parameters(), self.model.parameters()):
+    #         param1.data *= alpha
+    #         param1.data += (1.0 - alpha) * param2.data
 
     def set_mode(self, mode="train"):
         if mode == "train":
             self.model.train()
-            self.model_ema.train()
+            # self.model_ema.train()
         else:
             self.model.eval()
-            self.model_ema.eval()
+            # self.model_ema.eval()
 
     def reduce_lr(self):
         epoch_loss = self.total_epoch_loss # / float(len(self.dataset) // self.batch_size)
@@ -211,7 +214,7 @@ class Trainer():
 
     def save_models(self, iteration):
         save_model(self.model, self.optimizer, iteration, self.model_dir, model_name="model")
-        save_model(self.model_ema, None, iteration, self.model_dir, model_name="model_ema")
+        # save_model(self.model_ema, None, iteration, self.model_dir, model_name="model_ema")
 
     def train_epoch(self, epoch):
         cfg = self.cfg
@@ -246,8 +249,7 @@ class Trainer():
             # (2) Train Model
             ############################
             self.optimizer.zero_grad()
-
-            scores = self.model(image, question, question_len)
+            scores = self.model(question, question_len, image)
             loss = self.loss_fn(scores, answer)
             loss.backward()
 
@@ -255,7 +257,12 @@ class Trainer():
                 torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.cfg.TRAIN.CLIP)
 
             self.optimizer.step()
-            self.weight_moving_average()
+            # for name, param in self.model.named_parameters():
+            #     if torch.isnan(param).any():
+            #         print(name)
+            #         exit(0)
+
+            # self.weight_moving_average()
 
             ############################
             # (3) Log Progress
@@ -272,6 +279,7 @@ class Trainer():
                 'Epoch: {}; Avg Loss: {:.5f}; Avg Train Acc: {:.5f}'.format(epoch + 1, avg_loss, train_accuracy)
             )
 
+
         self.total_epoch_loss = avg_loss
 
         dict = {
@@ -287,9 +295,9 @@ class Trainer():
 
             with self.comet_exp.train():
                 dict = self.train_epoch(epoch)
-                self.reduce_lr()
+                # self.reduce_lr()
                 dict['epoch'] = epoch + 1
-                dict['lr'] = self.lr
+                # dict['lr'] = self.lr
                 self.comet_exp.log_metrics(dict, epoch=epoch + 1,)
 
             with self.comet_exp.validate():
@@ -316,12 +324,12 @@ class Trainer():
         self.writer.add_scalar("train_accuracy", dict["accuracy"], epoch)
 
         metrics = self.calc_accuracy("validation", max_samples=max_eval_samples)
-        self.writer.add_scalar("val_accuracy_ema", metrics['acc_ema'], epoch)
+        # self.writer.add_scalar("val_accuracy_ema", metrics['acc_ema'], epoch)
         self.writer.add_scalar("val_accuracy", metrics['acc'], epoch)
-        self.writer.add_scalar("val_loss_ema", metrics['loss_ema'], epoch)
+        # self.writer.add_scalar("val_loss_ema", metrics['loss_ema'], epoch)
         self.writer.add_scalar("val_loss", metrics['loss'], epoch)
 
-        print("Epoch: {epoch}\tVal Acc: {acc},\tVal Acc EMA: {acc_ema},\tAvg Loss: {loss},\tAvg Loss EMA: {loss_ema},\tLR: {lr}".
+        print("Epoch: {epoch}\tVal Acc: {acc},\tAvg Loss: {loss},\tLR: {lr}".
               format(epoch=epoch, lr=self.lr, **metrics))
 
         if metrics['acc'] > self.previous_best_acc:
@@ -345,10 +353,10 @@ class Trainer():
             loader = self.dataloader_val
 
         total_correct = 0
-        total_correct_ema = 0
+        # total_correct_ema = 0
         total_samples = 0
         total_loss = 0.
-        total_loss_ema = 0.
+        # total_loss_ema = 0.
         pbar = tqdm(loader, total=len(loader), desc=mode.upper(), ncols=20)
         for data in pbar:
 
@@ -363,39 +371,39 @@ class Trainer():
                 answer = answer.cuda().squeeze()
 
             with torch.no_grad():
-                scores = self.model(image, question, question_len)
-                scores_ema = self.model_ema(image, question, question_len)
+                scores = self.model(question, question_len, image)
+                # scores_ema = self.model_ema(image, question, question_len)
 
                 loss = self.loss_fn(scores, answer)
-                loss_ema = self.loss_fn(scores_ema, answer)
+                # loss_ema = self.loss_fn(scores_ema, answer)
 
 
             correct = scores.detach().argmax(1) == answer
-            correct_ema = scores_ema.detach().argmax(1) == answer
+            # correct_ema = scores_ema.detach().argmax(1) == answer
 
             total_correct += correct.sum().cpu().item()
-            total_correct_ema += correct_ema.sum().cpu().item()
+            # total_correct_ema += correct_ema.sum().cpu().item()
 
             total_loss += loss.item() * answer.size(0)
-            total_loss_ema += loss_ema.item() * answer.size(0)
+            # total_loss_ema += loss_ema.item() * answer.size(0)
 
             total_samples += answer.size(0)
 
             avg_acc = total_correct / total_samples
-            avg_acc_ema = total_correct_ema / total_samples
+            # avg_acc_ema = total_correct_ema / total_samples
             avg_loss = total_loss / total_samples
-            avg_loss_ema = total_loss_ema / total_samples
+            # avg_loss_ema = total_loss_ema / total_samples
             
             pbar.set_postfix({
                 'Acc': f'{avg_acc:.5f}',
-                'Acc Ema': f'{avg_acc_ema:.5f}',
+                # 'Acc Ema': f'{avg_acc_ema:.5f}',
                 'Loss': f'{avg_loss:.5f}',
-                'Loss Ema': f'{avg_loss_ema:.5f}',
+                # 'Loss Ema': f'{avg_loss_ema:.5f}',
             })
 
         return dict(
             acc=avg_acc,
-            acc_ema=avg_acc_ema,
+            # acc_ema=avg_acc_ema,
             loss=avg_loss,
-            loss_ema=avg_loss_ema
+            # loss_ema=avg_loss_ema
         )

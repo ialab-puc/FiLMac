@@ -1,20 +1,20 @@
 GPU_ID: '0'
 WORKERS: 1
 CUDA: True
-LOGDIR: 'nb1_clevr'
-COMET_PROJECT_NAME: 'clevr'
+LOGDIR: 'filmant_clevr'
+COMET_PROJECT_NAME: 'filmant-clevr'
 
 TRAIN:
     FLAG: True
-    LEARNING_RATE: 0.0001
-    BATCH_SIZE: 64
+    LEARNING_RATE: 0.001
+    BATCH_SIZE: 128
     MAX_EPOCHS: 40
     SNAPSHOT_INTERVAL: 5
     WEIGHT_INIT: "xavier_uniform"
     EALRY_STOPPING: True
     PATIENCE: 5
     CLIP_GRADS: True
-    RADAM: False
+    RADAM: True
     # MAX_STEPS: 4
 
 DATASET:
