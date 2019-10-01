@@ -86,11 +86,11 @@ class Trainer():
 
         if cfg.TRAIN.FLAG:
             if cfg.DATASET.DATASET == 'clevr':
-                self.dataset = ClevrDataset(data_dir=self.data_dir, split="train" + cogent, sample=sample, ignore_idx=ignore_idx)
+                self.dataset = ClevrDataset(data_dir=self.data_dir, split="train" + cogent, sample=sample)
                 self.dataloader = DataLoader(dataset=self.dataset, batch_size=cfg.TRAIN.BATCH_SIZE, shuffle=True,
                                             num_workers=cfg.WORKERS, drop_last=True, collate_fn=collate_fn)
             elif cfg.DATASET.DATASET == 'gqa':
-                self.dataset = GQADataset(data_dir=self.data_dir, split="train", sample=sample, ignore_idx=ignore_idx)
+                self.dataset = GQADataset(data_dir=self.data_dir, split="train", sample=sample)
                 self.dataloader = DataLoader(dataset=self.dataset, batch_size=cfg.TRAIN.BATCH_SIZE, shuffle=True,
                                             num_workers=cfg.WORKERS, drop_last=True, collate_fn=collate_fn_gqa)
 
