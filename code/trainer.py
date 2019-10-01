@@ -100,21 +100,21 @@ class Trainer():
 
         if cfg.TRAIN.FLAG or cfg.EVAL:
             if cfg.DATASET.DATASET == 'clevr':
-                self.dataset_val = ClevrDataset(data_dir=self.data_dir, split="val" + cogent, sample=sample, ignore_idx=ignore_idx)
+                self.dataset_val = ClevrDataset(data_dir=self.data_dir, split="val" + cogent, sample=sample)
                 self.dataloader_val = DataLoader(dataset=self.dataset_val, batch_size=cfg.TEST_BATCH_SIZE, drop_last=False,
                                                 shuffle=False, num_workers=cfg.WORKERS, collate_fn=collate_fn)
             elif cfg.DATASET.DATASET == 'gqa':
-                self.dataset_val = GQADataset(data_dir=self.data_dir, split="val", sample=sample, ignore_idx=ignore_idx)
+                self.dataset_val = GQADataset(data_dir=self.data_dir, split="val", sample=sample)
                 self.dataloader_val = DataLoader(dataset=self.dataset_val, batch_size=cfg.TEST_BATCH_SIZE, shuffle=False,
                                             num_workers=cfg.WORKERS, drop_last=False, collate_fn=collate_fn_gqa)
 
         elif cfg.TEST:
             if cfg.DATASET.DATASET == 'clevr':
-                self.dataset_val = ClevrDataset(data_dir=self.data_dir, split="test" + cogent, sample=sample, ignore_idx=ignore_idx)
+                self.dataset_val = ClevrDataset(data_dir=self.data_dir, split="test" + cogent, sample=sample)
                 self.dataloader_val = DataLoader(dataset=self.dataset_val, batch_size=cfg.TEST_BATCH_SIZE, drop_last=False,
                                                 shuffle=False, num_workers=cfg.WORKERS, collate_fn=collate_fn)
             elif cfg.DATASET.DATASET == 'gqa':
-                self.dataset_val = GQADataset(data_dir=self.data_dir, split="testdev", sample=sample, ignore_idx=ignore_idx)
+                self.dataset_val = GQADataset(data_dir=self.data_dir, split="testdev", sample=sample)
                 self.dataloader_val = DataLoader(dataset=self.dataset_val, batch_size=cfg.TEST_BATCH_SIZE, drop_last=False,
                                                 shuffle=False, num_workers=cfg.WORKERS, collate_fn=collate_fn_gqa)
 
