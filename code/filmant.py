@@ -9,10 +9,10 @@ def load_filmant(vocab, cfg):
     vocab_size = len(vocab['question_token_to_idx'])
     num_answers = len(vocab['answer_token_to_idx'])
     model = StepFilm(vocab_size, num_answers=num_answers)
-    # if torch.cuda.is_available() and cfg.CUDA:
-    #     model.cuda()
-    # else:
-    #     model.cpu()
+    if torch.cuda.is_available() and cfg.CUDA:
+        model.cuda()
+    else:
+        model.cpu()
     model.train()
     return model
 
@@ -76,18 +76,24 @@ class QuestionToInstruction(nn.Module):
                transformer_nlayers=6,
                transformer_heads=4,
                PE_dropout=0.1,
+               n_operations = 1,
                ):
     super(QuestionToInstruction, self).__init__()
     self.n_instructions = n_instructions
+    self.n_operations = n_operations
     encoderLayer = nn.TransformerEncoderLayer(d_model,transformer_heads)
     self.transformer = nn.TransformerEncoder(encoderLayer,
                                              transformer_nlayers)
     self.PE = PositionalEncoding(d_model, PE_dropout)
 
-    self.encoder_embed = nn.Embedding(vocab_size + n_instructions, d_model)
+    self.encoder_embed = nn.Embedding(vocab_size + n_instructions + n_operations, d_model)
     # self.encoder_embed.weight.data.uniform_(-1, 1)
     self.embedding_dropout = nn.Dropout(p=0.15)
-    self.instructions = torch.tensor([i for i in range(vocab_size, vocab_size + n_instructions)])#.cuda()
+
+    self.instructions = torch.tensor([i for i in range(vocab_size, vocab_size + n_instructions)]).cuda()
+    self.operations = torch.tensor([i for i in range(vocab_size + n_instructions,
+                                                     vocab_size + n_instructions + n_operations)]).cuda()
+
 
   def forward(self, question, question_len):
     # # Delete the padding before passing to Transformer for efficiency
@@ -98,16 +104,18 @@ class QuestionToInstruction(nn.Module):
     embed_q = self.encoder_embed(question)
     embed_q = self.PE(embed_q)
     embed_q = self.embedding_dropout(embed_q)
+    embed_o = self.encoder_embed(self.operations)
     
-    # Transform instruction tokens to match batch size. 
+    # Transform instructions and operation tokens to match batch size. 
     embed_i = embed_i.unsqueeze(1).expand(self.n_instructions, question.shape[1], -1)
+    embed_o = embed_o.unsqueeze(1).expand(self.n_operations, question.shape[1], -1)
     
     # Concat instruction tokens to questions (TODO: try difference between concat at the beginning or end)
 #     print(embed_i.shape, embed_q.shape)
-    embed = torch.cat((embed_i, embed_q), 0)
+    embed = torch.cat((embed_i, embed_o, embed_q), 0)
 
     x = self.transformer(embed)
-    return x[:self.n_instructions]
+    return x[:self.n_instructions], x[self.n_instructions:self.n_instructions + self.n_operations]
 
 class StepFilm(nn.Module):
 
@@ -122,7 +130,8 @@ class StepFilm(nn.Module):
                in_channels = 1024,
                cnn_dim=256,
                lstm_dim=256,
-               num_answers=28
+               num_answers=28,
+               n_operations=1,
                ):
     super(StepFilm, self).__init__()
     
@@ -140,6 +149,7 @@ class StepFilm(nn.Module):
     self.cond_feat_size = 2 * cnn_dim
     self.cnn_dim = cnn_dim
     self.n_instructions = n_instructions
+    self.n_operations = n_operations
     
     self.res_blocks = []
     for _ in range(n_filmblocks):
@@ -152,8 +162,13 @@ class StepFilm(nn.Module):
     self.activation = nn.ELU()
     self.dropout = nn.Dropout(0.15)
     self.attn = nn.Linear(d_model, 1)
+    
+    # self.memory = nn.LSTM(cnn_dim, lstm_dim, 1)
+    encoderLayer = nn.TransformerEncoderLayer(d_model,transformer_heads)
+    self.transformer = nn.TransformerEncoder(encoderLayer,
+                                             transformer_nlayers)
 
-    self.memory = nn.LSTM(cnn_dim, lstm_dim, 1)
+    self.PE = PositionalEncoding(d_model, PE_dropout)
     
     self.classifier = nn.Sequential(nn.Dropout(0.15),
                                     nn.Linear(lstm_dim, lstm_dim),
@@ -164,16 +179,14 @@ class StepFilm(nn.Module):
     
   def forward(self, question, question_len, image):
     question = question.permute(1,0)
-    instructions = self.question_to_instruction(question, question_len)
+    instructions, operations = self.question_to_instruction(question, question_len)
     batch_size = instructions.shape[1]
-    # print('Ahora vienen')
-    # print(batch_size)
-    # print(question.shape)
-    # print(image.shape)
+
     img = self.img_input(image)
     img = img.view(batch_size, self.cnn_dim, -1)
     img = img.permute(0,2,1)
-    mem = torch.empty(self.n_instructions, batch_size, self.cnn_dim)#.cuda()
+    mem = torch.empty(self.n_instructions + self.n_operations, batch_size, self.cnn_dim).cuda()
+
     for j, instruction in enumerate(instructions):
       film = self.film_generator(instruction).view(batch_size, self.n_filmblocks,  self.cond_feat_size)
       gammas, betas = torch.split(film[:,:,:2*self.cnn_dim], self.cnn_dim, dim=-1)
@@ -204,7 +217,12 @@ class StepFilm(nn.Module):
       attn = attn.unsqueeze(-1)
       read = (attn * know).sum(1)
     
-    x, _ = self.memory(mem, )
+    for j, op in enumerate(operations):
+      mem[self.n_instructions + j] = op
+
+    x = self.transformer(mem)
+    # x, _ = self.memory(mem, )
+    #TODO change if n_operations >1
     x = x[-1]
     x = self.classifier(x)
     
