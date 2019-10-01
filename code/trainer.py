@@ -218,67 +218,59 @@ class Trainer():
         self.set_mode("train")
 
         dataset = tqdm(self.labeled_data, total=len(self.dataloader), ncols=20)
-        try:
-            with detect_anomaly():
-                for data in dataset:
-                    ######################################################
-                    # (1) Prepare training data
-                    ######################################################
-                    image, question, question_len, answer = data['image'], data['question'], data['question_length'], data['answer']
-                    answer = answer.long()
-                    question = Variable(question)
-                    answer = Variable(answer)
 
-                    if cfg.CUDA:
-                        image = image.cuda()
-                        question = question.cuda()
-                        answer = answer.cuda().squeeze()
-                    else:
-                        question = question
-                        image = image
-                        answer = answer.squeeze()
+        for data in dataset:
+            ######################################################
+            # (1) Prepare training data
+            ######################################################
+            image, question, question_len, answer = data['image'], data['question'], data['question_length'], data['answer']
+            answer = answer.long()
+            question = Variable(question)
+            answer = Variable(answer)
 
-                    ############################
-                    # (2) Train Model
-                    ############################
-                    self.optimizer.zero_grad()
-                    scores = self.model(question, question_len, image)
-                    print(f"Scores: {scores}")
-                    print(f"answer: {answer}")
-                    loss = self.loss_fn(scores, answer)
-                    loss.backward()
+            if cfg.CUDA:
+                image = image.cuda()
+                question = question.cuda()
+                answer = answer.cuda().squeeze()
+            else:
+                question = question
+                image = image
+                answer = answer.squeeze()
 
-                    if self.cfg.TRAIN.CLIP_GRADS:
-                        torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.cfg.TRAIN.CLIP)
+            ############################
+            # (2) Train Model
+            ############################
+            self.optimizer.zero_grad()
+            scores = self.model(question, question_len, image)
+            loss = self.loss_fn(scores, answer)
+            loss.backward()
 
-                    self.optimizer.step()
-                    # for name, param in self.model.named_parameters():
-                    #     if torch.isnan(param).any():
-                    #         print(name)
-                    #         exit(0)
+            if self.cfg.TRAIN.CLIP_GRADS:
+                torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.cfg.TRAIN.CLIP)
 
-                    # self.weight_moving_average()
+            self.optimizer.step()
+            # for name, param in self.model.named_parameters():
+            #     if torch.isnan(param).any():
+            #         print(name)
+            #         exit(0)
 
-                    ############################
-                    # (3) Log Progress
-                    ############################
-                    correct = scores.detach().argmax(1) == answer
-                    total_correct += correct.sum().cpu().item()
-                    total_loss += loss.item() * answer.size(0)
-                    total_samples += answer.size(0)
+            # self.weight_moving_average()
 
-                    avg_loss = total_loss / total_samples
-                    train_accuracy = total_correct / total_samples
+            ############################
+            # (3) Log Progress
+            ############################
+            correct = scores.detach().argmax(1) == answer
+            total_correct += correct.sum().cpu().item()
+            total_loss += loss.item() * answer.size(0)
+            total_samples += answer.size(0)
 
-                    dataset.set_description(
-                        'Epoch: {}; Avg Loss: {:.5f}; Avg Train Acc: {:.5f}'.format(epoch + 1, avg_loss, train_accuracy)
-                    )
-            
-        except Exception as e:
-            for name, param in self.model.named_parameters():
-                print(name, torch.norm(param).item())
-                print(torch.norm(param.grad).item())
-            raise e
+            avg_loss = total_loss / total_samples
+            train_accuracy = total_correct / total_samples
+
+            dataset.set_description(
+                'Epoch: {}; Avg Loss: {:.5f}; Avg Train Acc: {:.5f}'.format(epoch + 1, avg_loss, train_accuracy)
+            )
+
 
         self.total_epoch_loss = avg_loss
 
