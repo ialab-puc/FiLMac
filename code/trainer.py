@@ -287,9 +287,9 @@ class Trainer():
 
             with self.comet_exp.train():
                 dict = self.train_epoch(epoch)
-                self.reduce_lr()
+                # self.reduce_lr()
                 dict['epoch'] = epoch + 1
-                dict['lr'] = self.lr
+                # dict['lr'] = self.lr
                 self.comet_exp.log_metrics(dict, epoch=epoch + 1,)
 
             with self.comet_exp.validate():
