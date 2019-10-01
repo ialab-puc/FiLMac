@@ -167,7 +167,7 @@ class StepFilm(nn.Module):
     img = img.view(batch_size, self.cnn_dim, -1)
     img = img.permute(0,2,1)
     mem = torch.empty(self.n_instructions, batch_size, self.cnn_dim).cuda()
-    for i, instruction in enumerate(instructions):
+    for j, instruction in enumerate(instructions):
       film = self.film_generator(instruction).view(batch_size, self.n_filmblocks,  self.cond_feat_size)
       gammas, betas = torch.split(film[:,:,:2*self.cnn_dim], self.cnn_dim, dim=-1)
       res = img
@@ -175,7 +175,7 @@ class StepFilm(nn.Module):
         res = self.res_blocks[i](res, gammas[:, i, :], betas[:, i, :])
       #TODO: test max pool instead of sum
       res = res.sum(1)
-      mem[i] = res
+      mem[j] = res
     
     x, _ = self.memory(mem, )
     x = x[-1]
