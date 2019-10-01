@@ -82,6 +82,8 @@ class Trainer():
         self.vocab = load_vocab(cfg)
         if cfg.DATASET.IGNORE_TOKEN: 
             ignore_idx = self.vocab['question_token_to_idx'][cfg.DATASET.IGNORE_TOKEN]
+        else:
+            ignore_idx = None
 
         if cfg.TRAIN.FLAG:
             if cfg.DATASET.DATASET == 'clevr':
