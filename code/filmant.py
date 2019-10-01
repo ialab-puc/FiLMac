@@ -220,6 +220,7 @@ class StepFilm(nn.Module):
     for j, op in enumerate(operations):
       mem[self.n_instructions + j] = op
 
+    mem = self.PE(mem)
     x = self.transformer(mem)
     # x, _ = self.memory(mem, )
     #TODO change if n_operations >1
