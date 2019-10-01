@@ -112,14 +112,14 @@ class StepFilm(nn.Module):
   def __init__(self,
                vocab_size,
                d_model=256,
-               n_instructions=5,
-               transformer_nlayers=6,
+               n_instructions=4,
+               transformer_nlayers=3,
                transformer_heads=4,
                PE_dropout=0.1,
                n_filmblocks=3,
                in_channels = 1024,
-               cnn_dim=512,
-               lstm_dim=512,
+               cnn_dim=256,
+               lstm_dim=256,
                num_answers=28
                ):
     super(StepFilm, self).__init__()
