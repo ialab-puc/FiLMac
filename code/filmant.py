@@ -125,11 +125,11 @@ class StepFilm(nn.Module):
     super(StepFilm, self).__init__()
     
     self.question_to_instruction = QuestionToInstruction(vocab_size,
-                                                         d_model=256,
-                                                         n_instructions=5,
-                                                         transformer_nlayers=6,
-                                                         transformer_heads=4,
-                                                         PE_dropout=0.1,)
+                                                         d_model=d_model,
+                                                         n_instructions=n_instructions,
+                                                         transformer_nlayers=transformer_nlayers,
+                                                         transformer_heads=transformer_heads,
+                                                         PE_dropout=PE_dropout,)
     self.img_input = nn.Sequential(nn.Dropout(p=0.2),
                                    nn.Conv2d(in_channels, cnn_dim, 3, 1, 1),
                                    nn.ReLU())
