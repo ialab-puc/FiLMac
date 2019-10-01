@@ -53,9 +53,9 @@ def parse_args():
 def set_logdir(max_steps, logdir=None):
     now = datetime.datetime.now(dateutil.tz.tzlocal())
     if logdir is None:
-        logdir = "/storage1/fcorencoret/FiLMac/data/{}_max_steps_{}".format(now, max_steps)
+        logdir = "data/{}_max_steps_{}".format(now, max_steps)
     else:
-        logdir = f'/storage1/fcorencoret/FiLMac/data/{logdir}'
+        logdir = f'data/{logdir}'
     mkdir_p(logdir)
     print("Saving output to: {}".format(logdir))
     code_dir = os.path.join(os.getcwd(), "code")
