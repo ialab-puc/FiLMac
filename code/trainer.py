@@ -363,7 +363,7 @@ class Trainer():
                 answer = answer.cuda().squeeze()
 
             with torch.no_grad():
-                scores = self.model(image, question, question_len)
+                scores = self.model(question, question_len, image)
                 # scores_ema = self.model_ema(image, question, question_len)
 
                 loss = self.loss_fn(scores, answer)
