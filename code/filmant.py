@@ -174,8 +174,12 @@ class StepFilm(nn.Module):
       for i in range(len(self.res_blocks)):
         res = self.res_blocks[i](res, gammas[:, i, :], betas[:, i, :])
       #TODO: test max pool instead of sum
-      res = res.sum(1)
-      mem[j] = res
+      # res = res.sum(1)
+      # mem[j] = res
+      res = res.permute(0,2,1)
+      m = nn.MaxPool1d(res.shape[2])
+      res = m(res).permute(0,2,1)
+      mem[j] = res.squeeze(1)
     
     x, _ = self.memory(mem, )
     x = x[-1]
