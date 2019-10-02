@@ -123,6 +123,9 @@ def cfg_to_exp_name(cfg):
     module_dim = cfg.model.common.module_dim
     max_step = cfg.model.max_step
     num_blocks = cfg.model.read_unit.num_blocks
+    sss = 'sss' if cfg.model.separate_syntax_semantics else ''
+    if len(sss) and cfg.model.input_unit.separate_syntax_semantics_embeddings:
+        sss += 'e'
     if cfg.model.read_unit.film_from == 'control':
         film_from = 'c'
     elif cfg.model.read_unit.film_from == 'qi':
@@ -136,6 +139,8 @@ def cfg_to_exp_name(cfg):
     exp_name += f'_ff{film_from}'
     if pretrained_vocab:
         exp_name += f'_{pretrained_vocab}'
+    if sss:
+        exp_name += f'_{sss}'
     exp_name += f'_bsz{bsz}_lr{lr}'
 
     return exp_name
