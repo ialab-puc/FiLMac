@@ -435,9 +435,11 @@ class InputUnit(nn.Module):
             rnn_dim = rnn_dim // 2
 
         self.encoder = nn.LSTM(wordvec_dim, rnn_dim, batch_first=True, bidirectional=bidirectional)
-        if self.separate_syntax_semantics_embeddings:
-            wordvec_dim *= 2
         self.encoder_embed = nn.Embedding(vocab_size, wordvec_dim)
+        if self.separate_syntax_semantics_embeddings:
+            self.semantic_embed = nn.Embedding(vocab_size, module_dim)
+        else:
+            self.semantic_embed = None
         self.encoder_embed.weight.data.uniform_(-1, 1)
         self.embedding_dropout = nn.Dropout(p=0.15)
         self.question_dropout = nn.Dropout(p=0.08)
@@ -459,8 +461,9 @@ class InputUnit(nn.Module):
         embed = self.encoder_embed(question)
         embed = self.embedding_dropout(embed)
         if self.separate_syntax_semantics_embeddings:
-            semantics = embed[:, :, self.wordvec_dim:]
-            embed = embed[:, :, :self.wordvec_dim]
+            semantics = self.semantic_embed(question)
+            semantics = self.embedding_dropout(semantics)
+            # embed = embed[:, :, :self.wordvec_dim]
         else:
             semantics = embed
         
