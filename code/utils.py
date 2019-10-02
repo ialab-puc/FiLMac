@@ -129,9 +129,13 @@ def cfg_to_exp_name(cfg):
         film_from = 'qi'
     elif cfg.model.read_unit.film_from == 'mac':
         film_from = 'mac'
-    
+    pretrained_vocab = cfg.model.pretrained_vocab
+
+
     exp_name = f'{max_step}_{module_dim}_nb{num_blocks}'
     exp_name += f'_ff{film_from}'
+    if pretrained_vocab:
+        exp_name += f'_{pretrained_vocab}'
     exp_name += f'_bsz{bsz}_lr{lr}'
 
     return exp_name
