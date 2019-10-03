@@ -108,19 +108,12 @@ def applyVarDpMask(inp, mask, keepProb):
 def cfg_to_exp_name(cfg):
     bsz = cfg.TRAIN.BATCH_SIZE
     lr = cfg.TRAIN.LEARNING_RATE
-    module_dim = cfg.model.common.module_dim
-    max_step = cfg.model.max_step
-    num_blocks = cfg.model.read_unit.num_blocks
-    if cfg.model.read_unit.film_from == 'control':
-        film_from = 'c'
-    elif cfg.model.read_unit.film_from == 'qi':
-        film_from = 'qi'
-    elif cfg.model.read_unit.film_from == 'mac':
-        film_from = 'mac'
+    module_dim = cfg.model.d_model
+    max_step = cfg.model.n_instructions
+    num_blocks = cfg.model.n_filmblocks
+    cnn_dim = cfg.model.cnn_dim
     
-    exp_name = f'{max_step}_{module_dim}_nb{num_blocks}'
-    exp_name += f'_ff{film_from}'
-    exp_name += f'_bsz{bsz}_lr{lr}'
+    exp_name = f'{max_step}_{module_dim}_nb{num_blocks}_cnn{cnn_dim}'
 
     return exp_name
             

@@ -8,7 +8,7 @@ import torch.nn.functional as F
 def load_filmant(vocab, cfg):
     vocab_size = len(vocab['question_token_to_idx'])
     num_answers = len(vocab['answer_token_to_idx'])
-    model = StepFilm(vocab_size, num_answers=num_answers)
+    model = StepFilm(vocab_size, num_answers, cfg)
     if torch.cuda.is_available() and cfg.CUDA:
         model.cuda()
     else:
@@ -121,60 +121,54 @@ class StepFilm(nn.Module):
 
   def __init__(self,
                vocab_size,
-               d_model=256,
-               n_instructions=4,
-               transformer_nlayers=3,
-               transformer_heads=4,
-               PE_dropout=0.1,
-               n_filmblocks=3,
-               in_channels = 1024,
-               cnn_dim=256,
-               lstm_dim=256,
-               num_answers=28,
-               n_operations=1,
+               num_answers,
+               cfg,
                ):
     super(StepFilm, self).__init__()
     
+
+
+
     self.question_to_instruction = QuestionToInstruction(vocab_size,
-                                                         d_model=d_model,
-                                                         n_instructions=n_instructions,
-                                                         transformer_nlayers=transformer_nlayers,
-                                                         transformer_heads=transformer_heads,
-                                                         PE_dropout=PE_dropout,)
+                                                         d_model=cfg.model.d_model,
+                                                         n_instructions=cfg.model.n_instructions,
+                                                         transformer_nlayers=cfg.model.transformer_nlayers,
+                                                         transformer_heads=cfg.model.transformer_heads,
+                                                         PE_dropout=cfg.model.PE_dropout,)
     self.img_input = nn.Sequential(nn.Dropout(p=0.2),
-                                   nn.Conv2d(in_channels, cnn_dim, 3, 1, 1),
+                                   nn.Conv2d(cfg.model.in_channels, cfg.model.cnn_dim, 3, 1, 1),
                                    nn.ReLU())
     
-    self.n_filmblocks = n_filmblocks
-    self.cond_feat_size = 2 * cnn_dim
-    self.cnn_dim = cnn_dim
-    self.n_instructions = n_instructions
-    self.n_operations = n_operations
+    self.n_filmblocks = cfg.model.n_filmblocks
+    self.cond_feat_size = 2 * cfg.model.cnn_dim
+    self.cnn_dim = cfg.model.cnn_dim
+    self.n_instructions = cfg.model.n_instructions
+    self.n_operations = cfg.model.n_operations
     
     self.res_blocks = []
     for _ in range(n_filmblocks):
             self.res_blocks.append(FiLMBlock(self.cnn_dim, dropout=0.2, batchnorm_affine=False))
     self.res_blocks = nn.ModuleList(self.res_blocks)
     
-    self.film_generator = nn.Linear(d_model, self.cond_feat_size * self.n_filmblocks)
+    self.film_generator = nn.Linear(cfg.model.d_model, self.cond_feat_size * self.n_filmblocks)
 
-    self.intruction_proj = nn.Linear(cnn_dim, d_model)
+    self.intruction_proj = nn.Linear(self.cnn_dim, cfg.model.d_model)
     self.activation = nn.ELU()
     self.dropout = nn.Dropout(0.15)
-    self.attn = nn.Linear(d_model, 1)
+    self.attn = nn.Linear(cfg.model.d_model, 1)
     
     # self.memory = nn.LSTM(cnn_dim, lstm_dim, 1)
-    encoderLayer = nn.TransformerEncoderLayer(d_model,transformer_heads)
+    encoderLayer = nn.TransformerEncoderLayer(cfg.model.d_model,cfg.model.transformer_heads)
     self.transformer = nn.TransformerEncoder(encoderLayer,
-                                             transformer_nlayers)
+                                             cfg.model.transformer_nlayers)
 
-    self.PE = PositionalEncoding(d_model, PE_dropout)
+    self.PE = PositionalEncoding(cfg.model.d_model, cfg.model.PE_dropout)
     
     self.classifier = nn.Sequential(nn.Dropout(0.15),
-                                    nn.Linear(lstm_dim, lstm_dim),
+                                    nn.Linear(cfg.model.d_model, cfg.model.d_model),
                                     nn.ReLU(),
                                     nn.Dropout(0.15),
-                                    nn.Linear(lstm_dim, num_answers))
+                                    nn.Linear(cfg.model.d_model, num_answers))
     
     
   def forward(self, question, question_len, image):

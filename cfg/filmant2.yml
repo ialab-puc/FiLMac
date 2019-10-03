@@ -1,0 +1,34 @@
+GPU_ID: '0'
+WORKERS: 1
+CUDA: True
+LOGDIR: 'filmant_clevr'
+COMET_PROJECT_NAME: 'filmant-clevr'
+
+TRAIN:
+    FLAG: True
+    LEARNING_RATE: 0.01
+    BATCH_SIZE: 64
+    MAX_EPOCHS: 40
+    SNAPSHOT_INTERVAL: 5
+    WEIGHT_INIT: "xavier_uniform"
+    EALRY_STOPPING: True
+    PATIENCE: 5
+    CLIP_GRADS: True
+    RADAM: True
+    # MAX_STEPS: 4
+
+DATASET:
+    DATA_DIR: '/storage1/datasets/CLEVR_v1.0/features'
+    DATASET: 'clevr'
+
+model:
+    d_model: 256
+    n_instructions: 3
+    transformer_nlayers: 4
+    transformer_heads: 4
+    PE_dropout: 0.1
+    n_filmblocks: 2
+    in_channels: 1024
+    cnn_dim: 256
+    num_answers: 28
+    n_operations: 1
