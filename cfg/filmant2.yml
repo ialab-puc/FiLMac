@@ -30,5 +30,4 @@ model:
     n_filmblocks: 2
     in_channels: 1024
     cnn_dim: 256
-    num_answers: 28
     n_operations: 1

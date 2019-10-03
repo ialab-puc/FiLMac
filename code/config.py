@@ -49,37 +49,15 @@ __C.DATASET.COGENT = ''
 __C.DATASET.IGNORE_TOKEN = ''
 # __C.DATASET = dict(__C.DATASET)
 __C.model = edict(
-    init_mem='random',
-    max_step=4,
-    separate_syntax_semantics=False,
-    common=edict(module_dim=512),
-    input_unit=edict(
-        wordvec_dim=300,
-        rnn_dim=512,
-        bidirectional=True,
-        separate_syntax_semantics_embeddings=False,
-        stem_act='ELU',
-        in_channels=1024,
-        num_blocks=3,
-        use_stem=True,
-        ),
-    control_unit=edict(
-        control_feed_prev=True,
-        control_cont_activation='TANH',
-    ),
-    read_unit=edict(
-        num_blocks=3,
-        film_from=None,
-        in_channels=1024,
-        use_stem=True,
-    ),
-    write_unit=edict(
-        rtom=False,
-        self_attn=False,
-        gate=False,
-        gate_shared=False,
-        ),
-    output_unit=edict(),
+    d_model=256,
+    n_instructions=4,
+    transformer_nlayers=3,
+    transformer_heads=4,
+    PE_dropout=0.1,
+    n_filmblocks=3,
+    in_channels = 1024,
+    cnn_dim=256,
+    n_operations=1,
 )
 
 
