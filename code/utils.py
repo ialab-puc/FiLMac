@@ -5,9 +5,9 @@ import errno
 import pickle
 import functools
 from copy import deepcopy
-from itertools import chain, starmap
 from collections import OrderedDict
 import operator
+from itertools import chain, starmap
 
 
 import numpy as np
@@ -49,6 +49,18 @@ def mkdir_p(path):
             pass
         else:
             raise
+
+def init_vocab_embedding(pretrained_idx, pretrained_values, token2id, vocab_size, embedding):
+    toks_in_vocab = pretrained_idx[pretrained_idx.index.isin(token2id.index)]
+    print('Matching pretrained vocab:', f'{len(toks_in_vocab)}/{len(token2id)}')
+
+    embedding = deepcopy(embedding)
+    embedding.weight.requires_grad = False
+    # Para los tokens que si estan en glove los preinicializo
+    embedding.weight[token2id[toks_in_vocab.index].values] = torch.from_numpy(pretrained_values[toks_in_vocab.values.tolist()])
+    embedding.weight.requires_grad = True
+
+    return embedding
 
 
 def init_modules(modules, w_init='kaiming_uniform'):
@@ -114,6 +126,9 @@ def cfg_to_exp_name(cfg):
     module_dim = cfg.model.common.module_dim
     max_step = cfg.model.max_step
     num_blocks = cfg.model.read_unit.num_blocks
+    sss = 'sss' if cfg.model.separate_syntax_semantics else ''
+    if len(sss) and cfg.model.input_unit.separate_syntax_semantics_embeddings:
+        sss += 'e'
     if cfg.model.read_unit.film_from == 'control':
         film_from = 'c'
     elif cfg.model.read_unit.film_from == 'qi':
@@ -127,6 +142,12 @@ def cfg_to_exp_name(cfg):
     if not cfg.model.input_unit.use_stem: exp_name += '_nostem'
     if cfg.SAMPLE: exp_name += f'{cfg.SAMPLE}'
     if cfg.TRAIN.CURRICULUM: exp_name += '_curr'
+    pretrained_vocab = cfg.model.pretrained_vocab
+
+    if pretrained_vocab:
+        exp_name += f'_{pretrained_vocab}'
+    if sss:
+        exp_name += f'_{sss}'
 
     return exp_name
             

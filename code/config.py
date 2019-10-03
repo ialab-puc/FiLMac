@@ -49,10 +49,17 @@ __C.DATASET.DATA_DIR = ''
 __C.DATASET.COGENT = ''
 __C.DATASET.IGNORE_TOKEN = ''
 # __C.DATASET = dict(__C.DATASET)
+__C.pretrained_vocabs = edict(
+    glove=edict(
+        values_file='',
+        tok2idx_file='',
+    ),
+)
 __C.model = edict(
     init_mem='random',
     max_step=4,
     separate_syntax_semantics=False,
+    pretrained_vocab='',
     common=edict(module_dim=512),
     input_unit=edict(
         wordvec_dim=300,
@@ -61,7 +68,7 @@ __C.model = edict(
         separate_syntax_semantics_embeddings=False,
         stem_act='ELU',
         in_channels=1024,
-        num_blocks=3,
+        num_blocks=0,
         use_stem=True,
         ),
     control_unit=edict(

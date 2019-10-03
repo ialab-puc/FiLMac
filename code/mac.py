@@ -1,11 +1,15 @@
 import math
 
+import h5py
+import pandas as pd
+
 import torch
 import torch.nn as nn
 import torch.nn.init as init
 from torch.autograd import Variable
+from torch.nn import functional as F
 
-from utils import *
+from utils import load_vocab, init_modules, generateVarDpMask, init_vocab_embedding
 
 
 acts = {
@@ -312,16 +316,17 @@ class WriteUnit(nn.Module):
 
             if self.gate:
                 control = self.ctrl_gate_linear(control)
-                z = F.sigmoid(control)
+                z = torch.sigmoid(control)
                 newMemory = newMemory * z + memory * (1 - z)
 
         return newMemory
 
 
 class MACUnit(nn.Module):
-    def __init__(self, units_cfg, module_dim=512, max_step=4):
+    def __init__(self, cfg, module_dim=512, max_step=4):
         super().__init__()
         self.cfg = cfg
+        units_cfg = cfg.model
         self.control = ControlUnit(
             **{
                 'module_dim': module_dim,
@@ -430,9 +435,11 @@ class InputUnit(nn.Module):
             rnn_dim = rnn_dim // 2
 
         self.encoder = nn.LSTM(wordvec_dim, rnn_dim, batch_first=True, bidirectional=bidirectional)
-        if self.separate_syntax_semantics_embeddings:
-            wordvec_dim *= 2
         self.encoder_embed = nn.Embedding(vocab_size, wordvec_dim)
+        if self.separate_syntax_semantics_embeddings:
+            self.semantic_embed = nn.Embedding(vocab_size, module_dim)
+        else:
+            self.semantic_embed = None
         self.encoder_embed.weight.data.uniform_(-1, 1)
         self.embedding_dropout = nn.Dropout(p=0.15)
         self.question_dropout = nn.Dropout(p=0.08)
@@ -454,8 +461,9 @@ class InputUnit(nn.Module):
         embed = self.encoder_embed(question)
         embed = self.embedding_dropout(embed)
         if self.separate_syntax_semantics_embeddings:
-            semantics = embed[:, :, self.wordvec_dim:]
-            embed = embed[:, :, :self.wordvec_dim]
+            semantics = self.semantic_embed(question)
+            semantics = self.embedding_dropout(semantics)
+            # embed = embed[:, :, :self.wordvec_dim]
         else:
             semantics = embed
         
@@ -520,7 +528,7 @@ class MACNetwork(nn.Module):
         )
 
         self.mac = MACUnit(
-            cfg.model,
+            cfg,
             max_step=cfg.model.max_step,
             **cfg.model.common,
         )
@@ -528,6 +536,17 @@ class MACNetwork(nn.Module):
         init_modules(self.modules(), w_init=cfg.TRAIN.WEIGHT_INIT)
         nn.init.uniform_(self.input_unit.encoder_embed.weight, -1.0, 1.0)
         nn.init.normal_(self.mac.initial_memory)
+        
+        if cfg.model.pretrained_vocab:
+            pretrained_vocab = cfg.model.pretrained_vocab
+            print(f'Using {pretrained_vocab} pretrained vocab')
+            pretrained_vocab = cfg.pretrained_vocabs[pretrained_vocab]
+            vocab_values = h5py.File(pretrained_vocab.values_file, 'r')['vocab']
+            vocab_idxs = pd.read_msgpack(pretrained_vocab.tok2idx_file)
+
+            tok2id = pd.Series(vocab['question_token_to_idx'])
+            self.input_unit.encoder_embed = init_vocab_embedding(vocab_idxs, vocab_values, tok2id, len(tok2id), self.input_unit.encoder_embed)
+
 
     def forward(self, image, question, question_len):
         # get image, word, and sentence embeddings

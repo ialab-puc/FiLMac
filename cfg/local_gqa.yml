@@ -24,9 +24,15 @@ DATASET:
     DATASET: 'gqa'
     DATA_DIR: '/Users/sebamenabar/Documents/datasets/GQA/data'
 
+pretrained_vocabs:
+    glove:
+        values_file: '/Users/sebamenabar/Documents/datasets/glove.840B.300d.h5'
+        tok2idx_file: '/Users/sebamenabar/Documents/datasets/glove.840B.300d.tok2idx.msg'
+
 model:
     max_step: 4
     separate_syntax_semantics: False
+    pretrained_vocab: 'glove'
     common:
         module_dim: 512
     input_unit:
