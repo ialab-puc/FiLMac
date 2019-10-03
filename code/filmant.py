@@ -146,7 +146,7 @@ class StepFilm(nn.Module):
     self.n_operations = cfg.model.n_operations
     
     self.res_blocks = []
-    for _ in range(n_filmblocks):
+    for _ in range(self.n_filmblocks):
             self.res_blocks.append(FiLMBlock(self.cnn_dim, dropout=0.2, batchnorm_affine=False))
     self.res_blocks = nn.ModuleList(self.res_blocks)
     
