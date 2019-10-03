@@ -20,7 +20,7 @@ __C.COMET_PROJECT_NAME = None
 __C.EVAL = False
 __C.TEST = False
 __C.TEST_BATCH_SIZE = 256
-__C.SAMPLE = False
+__C.SAMPLE = ''
 __C.resume_model = None
 __C.resume_model_ema = None
 __C.start_epoch = None
@@ -40,6 +40,7 @@ __C.TRAIN.PATIENCE = 5
 __C.TRAIN.VAR_DROPOUT = False
 # __C.TRAIN = dict(__C.TRAIN)
 __C.TRAIN.RADAM = False
+__C.TRAIN.CURRICULUM = False
 
 # Dataset options
 __C.DATASET = edict()

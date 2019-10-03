@@ -106,3 +106,13 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+# log files
+*.out
+*.err
+
+# cfg
+cfg/
+
+# pkl
+*.pkl

@@ -85,7 +85,10 @@ class GQADataset(data.Dataset):
             self.data = pickle.load(f)
         with open(os.path.join(data_dir, 'gqa_spatial_merged_info.json')) as f:
             self.spatial_info = json.load(f)
+        with open(os.path.join(data_dir[:-4], 'questions', '{}_balanced_questions.json'.format(split)), 'rb') as f:
+            self.questions_json = json.load(f)
         self.img = h5py.File(os.path.join(data_dir, 'gqa_spatial.h5'), 'r')['features']
+
 
     def __getitem__(self, index):
         question = self.data[index]
