@@ -289,7 +289,7 @@ class Trainer():
         for epoch in range(self.start_epoch, self.max_epochs):
             train_dataloader, val_dataloader = self.dataloader, self.dataloader_val
             if cfg.TRAIN.CURRICULUM:
-                curriculum_learning_step = CURRICULUM[epoch // 1]
+                curriculum_learning_step = CURRICULUM[epoch // cfg.CURRICULUM_STEP]
                 train_dataloader, val_dataloader = curriculum_learning(self.dataset, self.dataset_val, *curriculum_learning_step)
             print(f'Dataloader size train : {len(train_dataloader)} | val : {len(val_dataloader)}')
             with self.comet_exp.train():

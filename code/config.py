@@ -41,6 +41,7 @@ __C.TRAIN.VAR_DROPOUT = False
 # __C.TRAIN = dict(__C.TRAIN)
 __C.TRAIN.RADAM = False
 __C.TRAIN.CURRICULUM = False
+__C.TRAIN.CURRICULUM_STEP = 2
 
 # Dataset options
 __C.DATASET = edict()

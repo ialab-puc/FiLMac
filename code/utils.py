@@ -242,7 +242,10 @@ def get_sorted_words(data):
     return sorted_words
 
 def curriculum_learning(train_dataset, val_dataset, word_count, steps):
-    words = get_sorted_words(train_dataset.data)[:word_count]
+    words = get_sorted_words(train_dataset.data)
+    if word_count == -1:
+        word_count = len(words)
+    words = words[:word_count]
     train_idxs = []
     for i in range(len(train_dataset.data)):
         corr = True
@@ -265,7 +268,6 @@ def curriculum_learning(train_dataset, val_dataset, word_count, steps):
     return train_loader, val_loader
 
 CURRICULUM = [
-            (50, 9),
             (70, 2),
             (70, 3),
             (70, 9),
@@ -284,4 +286,5 @@ CURRICULUM = [
             (250, 2),
             (250, 3),
             (250, 9),
+            (-1, 9),
 ]
