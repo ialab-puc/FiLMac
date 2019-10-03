@@ -216,6 +216,7 @@ class StepFilm(nn.Module):
       # sum up the knowledge base according to the distribution
       attn = attn.unsqueeze(-1)
       read = (attn * know).sum(1)
+      mem[j] = read
     
     for j, op in enumerate(operations):
       mem[self.n_instructions + j] = op
