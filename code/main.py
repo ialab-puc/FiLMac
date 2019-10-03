@@ -124,7 +124,7 @@ if __name__ == "__main__":
     cfg.EVAL = args.eval
     print(args)
 
-    logdir = set_logdir(cfg.model.max_step, cfg.LOGDIR)
+    logdir = set_logdir(cfg.model.n_instructions, cfg.LOGDIR)
     trainer = Trainer(logdir, cfg)
 
     if cfg.TRAIN.FLAG:
