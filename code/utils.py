@@ -141,7 +141,9 @@ def cfg_to_exp_name(cfg):
     if cfg.DATASET.IGNORE_TOKEN: exp_name += f'_ign{cfg.DATASET.IGNORE_TOKEN}'
     if not cfg.model.input_unit.use_stem: exp_name += '_nostem'
     if cfg.SAMPLE: exp_name += f'{cfg.SAMPLE}'
-    if cfg.TRAIN.CURRICULUM: exp_name += '_curr'
+    if cfg.TRAIN.CURRICULUM: 
+        exp_name += '_curr'
+        exp_name += f'_{cfg.TRAIN.CURRICULUM_STEP}'
     pretrained_vocab = cfg.model.pretrained_vocab
 
     if pretrained_vocab:
