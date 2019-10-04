@@ -22,12 +22,12 @@ DATASET:
     DATASET: 'clevr'
 
 model:
-    d_model: 256
+    d_model: 300
     n_instructions: 3
     transformer_nlayers: 4
     transformer_heads: 4
     PE_dropout: 0.1
     n_filmblocks: 2
     in_channels: 1024
-    cnn_dim: 512
+    cnn_dim: 300
     n_operations: 1

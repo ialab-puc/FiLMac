@@ -6,7 +6,7 @@ COMET_PROJECT_NAME: 'filmant-clevr'
 
 TRAIN:
     FLAG: True
-    LEARNING_RATE: 0.0001
+    LEARNING_RATE: 0.0003
     BATCH_SIZE: 64
     MAX_EPOCHS: 40
     SNAPSHOT_INTERVAL: 5
@@ -22,12 +22,12 @@ DATASET:
     DATASET: 'clevr'
 
 model:
-    d_model: 256
+    d_model: 200
     n_instructions: 3
     transformer_nlayers: 4
     transformer_heads: 4
-    PE_dropout: 0
+    PE_dropout: 0.0
     n_filmblocks: 2
     in_channels: 1024
-    cnn_dim: 512
+    cnn_dim: 200
     n_operations: 1
