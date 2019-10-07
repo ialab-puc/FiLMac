@@ -87,7 +87,7 @@ if __name__ == "__main__":
         cfg.DATASET.DATASET = args.dataset
     if args.resume_model is not None:
         cfg.resume_model = args.resume_model
-        cfg.resume_model_ema = args.resume_model_ema
+        # cfg.resume_model_ema = args.resume_model_ema
     if args.bsz is not None:
         cfg.TEST_BATCH_SIZE = args.bsz
         cfg.TRAIN.BATCH_SIZE = args.bsz
