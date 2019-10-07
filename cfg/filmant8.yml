@@ -6,13 +6,13 @@ COMET_PROJECT_NAME: 'filmant-clevr'
 
 TRAIN:
     FLAG: True
-    LEARNING_RATE: 0.00001
-    BATCH_SIZE: 64
-    MAX_EPOCHS: 40
+    LEARNING_RATE: 0.000005
+    BATCH_SIZE: 128
+    MAX_EPOCHS: 70
     SNAPSHOT_INTERVAL: 5
     WEIGHT_INIT: "xavier_uniform"
     EALRY_STOPPING: True
-    PATIENCE: 5
+    PATIENCE: 10
     CLIP_GRADS: True
     RADAM: True
     # MAX_STEPS: 4

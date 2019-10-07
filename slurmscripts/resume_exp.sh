@@ -18,8 +18,8 @@ echo "Inicio entrenamiento filmant"
 
 source ~/virtualenv/film/bin/activate
 
-python3 code/main.py --cfg cfg/filmant8.yml --resume-model data/filmant8_clevr/Model/model_checkpoint_000020.pth --logcomet > filmant8_clevr_$SLURM_JOBID.out 2>&1 &
-python3 code/main.py --cfg cfg/filmant1.yml --resume-model data/filmant1_clevr/Model/model_checkpoint_000015.pth --logcomet > filmant1_clevr_$SLURM_JOBID.out 2>&1 &
+python3 code/main.py --cfg cfg/filmant8.yml --resume-model data/filmant8_clevr/Model/model_checkpoint_000040.pth --logcomet > filmant8_clevr_$SLURM_JOBID.out 2>&1 &
+# python3 code/main.py --cfg cfg/filmant1.yml --resume-model data/filmant1_clevr/Model/model_checkpoint_000015.pth --logcomet > filmant1_clevr_$SLURM_JOBID.out 2>&1 &
 
 wait
 

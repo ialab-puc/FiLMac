@@ -202,9 +202,9 @@ class Trainer():
     def reduce_lr(self):
         epoch_loss = self.total_epoch_loss # / float(len(self.dataset) // self.batch_size)
         lossDiff = self.prior_epoch_loss - epoch_loss
-        if ((lossDiff < 0.015 and self.prior_epoch_loss < 0.5 and self.lr > 0.00002) or \
-            (lossDiff < 0.008 and self.prior_epoch_loss < 0.15 and self.lr > 0.00001) or \
-            (lossDiff < 0.003 and self.prior_epoch_loss < 0.10 and self.lr > 0.000005)):
+        if ((lossDiff < 0.015 and self.lr > 0.00002) or \
+            (lossDiff < 0.008 and self.lr > 0.00001) or \
+            (lossDiff < 0.003 and self.lr > 0.000005)):
             self.lr *= 0.5
             print("Reduced learning rate to {}".format(self.lr))
             for param_group in self.optimizer.param_groups:
