@@ -126,9 +126,9 @@ def showImgAtt(img, atts, step, ax, vis='attn'):
     if vis == 'attn':
         low = att.min().item()
         high = att.max().item()
-        att = sigmoid(((att - low) / (high - low)) * 20 - 10)
+        att = sigmoid(((att.cpu() - low) / (high - low)) * 20 - 10)
     elif vis == 'know':
-        f_map = (att ** 2).mean(-1).sqrt()
+        f_map = (att.cpu() ** 2).mean(-1).sqrt()
         f_map_shifted = f_map - f_map.min().expand_as(f_map)
         f_map_scaled = f_map_shifted / f_map_shifted.max().expand_as(f_map_shifted)
         att = f_map_scaled
@@ -258,9 +258,9 @@ def plot_word_img_attn(
         gt,
         vis='attn'
     ):
-    fig = plt.figure(figsize=(16, 2 * num_steps + 4))
+    fig = plt.figure(figsize=(16, 2 * (num_steps + num_steps // 2) + 4))
 
-    g0 = gridspec.GridSpec((num_steps // 2) + 2, 3, figure=fig)
+    g0 = gridspec.GridSpec(math.ceil(num_steps / 2) + 2, 3, figure=fig)
 
     ax_raw_image = fig.add_subplot(g0[-2:, 1:])
     image_path = os.path.join(images_root, image_filename)
@@ -271,21 +271,26 @@ def plot_word_img_attn(
 
     ax_table = fig.add_subplot(g0[:-1, 0])
     ax_images = []
-    for i in range(num_steps // 2):
+    for i in range(math.ceil(num_steps / 2)):
         ax_images.append(fig.add_subplot(g0[i, 1]))
         ax_images.append(fig.add_subplot(g0[i, 2]))
 
-    table = np.array([t.numpy()[0].squeeze(-1)
-                      for t in mid_outputs['cw_attn']])
-    steps = len(table)
+    table = np.array([t.cpu().numpy() for t in mid_outputs['cw_attn'][1]])[0]
+    table = table[ : 4]
+    transformer = np.array([t.cpu().numpy() for t in mid_outputs['transformer_attn_3'][1]])[0]
+    transformer = transformer[3]
+    steps = 4
     table = np.transpose(table)
+    table = np.concatenate((table, [transformer]))
+
+    words = ['I1', 'I2', 'I3', 'Op'] + words + ['Transformer']
 
     tableMap = pandas.DataFrame(data=table,
-                                columns=[i for i in range(1, steps + 1)],
+                                columns=['I1', 'I2', 'I3', 'Op'],
                                 index=words)
 
     bx = sns.heatmap(tableMap,
-                     cmap="Purples",
+                     cmap="Reds",
                      cbar=True,
                      linewidths=.5,
                      linecolor="gray",
