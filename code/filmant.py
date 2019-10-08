@@ -159,6 +159,13 @@ class StepFilm(nn.Module):
     self.dropout = nn.Dropout(0.15)
     self.attn = nn.Linear(cfg.model.d_model, 1)
     
+    # Visualizations
+    self.kb_attn_idty = nn.Identity()
+    self.beta_idty = nn.Identity()
+    self.gamma_idty = nn.Identity()
+    self.res_block_idty = nn.Identity()
+    self.features_idty = nn.Identity()
+    
     # self.memory = nn.LSTM(cnn_dim, lstm_dim, 1)
     encoderLayer = nn.TransformerEncoderLayer(cfg.model.d_model,cfg.model.transformer_heads, dropout=cfg.model.transformer_dropout)
     self.transformer = nn.TransformerEncoder(encoderLayer,
@@ -178,6 +185,7 @@ class StepFilm(nn.Module):
     instructions, operations = self.question_to_instruction(question, question_len)
     batch_size = instructions.shape[1]
 
+    image = self.features_idty(image)
     img = self.img_input(image)
     img = img.view(batch_size, self.cnn_dim, -1)
     img = img.permute(0,2,1)
@@ -186,9 +194,12 @@ class StepFilm(nn.Module):
     for j, instruction in enumerate(instructions):
       film = self.film_generator(instruction).view(batch_size, self.n_filmblocks,  self.cond_feat_size)
       gammas, betas = torch.split(film[:,:,:2*self.cnn_dim], self.cnn_dim, dim=-1)
+      gammas = self.gamma_idty(gammas)
+      betas = self.beta_idty(betas)
       res = img
       for i in range(len(self.res_blocks)):
         res = self.res_blocks[i](res, gammas[:, i, :], betas[:, i, :])
+      res = self.res_block_idty(res)
       #TODO: test max pool instead of sum
       # res = res.sum(1)
       # mem[j] = res
@@ -207,7 +218,7 @@ class StepFilm(nn.Module):
       interactions = self.dropout(interactions)
       attn = self.attn(interactions).squeeze(-1)
       attn = F.softmax(attn, 1)
-      #attn = self.kb_attn_idty(attn)
+      attn = self.kb_attn_idty(attn)
 
       # sum up the knowledge base according to the distribution
       attn = attn.unsqueeze(-1)
