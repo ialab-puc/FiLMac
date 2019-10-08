@@ -6,12 +6,12 @@ COMET_PROJECT_NAME: 'filmant-clevr'
 
 TRAIN:
     FLAG: True
-    LEARNING_RATE: 0.000005
+    LEARNING_RATE: 0.00005
     BATCH_SIZE: 128
-    MAX_EPOCHS: 70
+    MAX_EPOCHS: 100
     SNAPSHOT_INTERVAL: 5
     WEIGHT_INIT: "xavier_uniform"
-    EALRY_STOPPING: True
+    EALRY_STOPPING: False
     PATIENCE: 10
     CLIP_GRADS: True
     RADAM: True
@@ -25,6 +25,7 @@ model:
     d_model: 300
     n_instructions: 3
     transformer_nlayers: 4
+    transformer_dropout: 0.3
     transformer_heads: 4
     PE_dropout: 0.1
     n_filmblocks: 2
