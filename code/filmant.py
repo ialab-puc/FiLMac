@@ -74,6 +74,7 @@ class QuestionToInstruction(nn.Module):
                d_model=256,
                n_instructions=5,
                transformer_nlayers=6,
+               transformer_dropout=0.1,
                transformer_heads=4,
                PE_dropout=0.1,
                n_operations = 1,
@@ -81,7 +82,7 @@ class QuestionToInstruction(nn.Module):
     super(QuestionToInstruction, self).__init__()
     self.n_instructions = n_instructions
     self.n_operations = n_operations
-    encoderLayer = nn.TransformerEncoderLayer(d_model,transformer_heads)
+    encoderLayer = nn.TransformerEncoderLayer(d_model,transformer_heads, dropout=transformer_dropout)
     self.transformer = nn.TransformerEncoder(encoderLayer,
                                              transformer_nlayers)
     self.PE = PositionalEncoding(d_model, PE_dropout)
@@ -133,6 +134,7 @@ class StepFilm(nn.Module):
                                                          d_model=cfg.model.d_model,
                                                          n_instructions=cfg.model.n_instructions,
                                                          transformer_nlayers=cfg.model.transformer_nlayers,
+                                                         transformer_dropout=cfg.transformer_dropout,
                                                          transformer_heads=cfg.model.transformer_heads,
                                                          PE_dropout=cfg.model.PE_dropout,)
     self.img_input = nn.Sequential(nn.Dropout(p=0.2),
@@ -165,7 +167,7 @@ class StepFilm(nn.Module):
     self.features_idty = nn.Identity()
     
     # self.memory = nn.LSTM(cnn_dim, lstm_dim, 1)
-    encoderLayer = nn.TransformerEncoderLayer(cfg.model.d_model,cfg.model.transformer_heads)
+    encoderLayer = nn.TransformerEncoderLayer(cfg.model.d_model,cfg.model.transformer_heads, dropout=cfg.transformer_dropout)
     self.transformer = nn.TransformerEncoder(encoderLayer,
                                              cfg.model.transformer_nlayers)
 
