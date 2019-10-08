@@ -52,6 +52,7 @@ __C.model = edict(
     d_model=256,
     n_instructions=4,
     transformer_nlayers=3,
+    transformer_dropout=0.1,
     transformer_heads=4,
     PE_dropout=0.1,
     n_filmblocks=3,

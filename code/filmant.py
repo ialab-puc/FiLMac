@@ -81,7 +81,7 @@ class QuestionToInstruction(nn.Module):
     super(QuestionToInstruction, self).__init__()
     self.n_instructions = n_instructions
     self.n_operations = n_operations
-    encoderLayer = nn.TransformerEncoderLayer(d_model,transformer_heads)
+    encoderLayer = nn.TransformerEncoderLayer(d_model,transformer_heads, dropout=cfg.transformer_dropout)
     self.transformer = nn.TransformerEncoder(encoderLayer,
                                              transformer_nlayers)
     self.PE = PositionalEncoding(d_model, PE_dropout)
@@ -158,7 +158,7 @@ class StepFilm(nn.Module):
     self.attn = nn.Linear(cfg.model.d_model, 1)
     
     # self.memory = nn.LSTM(cnn_dim, lstm_dim, 1)
-    encoderLayer = nn.TransformerEncoderLayer(cfg.model.d_model,cfg.model.transformer_heads)
+    encoderLayer = nn.TransformerEncoderLayer(cfg.model.d_model,cfg.model.transformer_heads, dropout=cfg.transformer_dropout)
     self.transformer = nn.TransformerEncoder(encoderLayer,
                                              cfg.model.transformer_nlayers)
 
