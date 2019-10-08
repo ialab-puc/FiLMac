@@ -147,7 +147,8 @@ class StepFilm(nn.Module):
     self.n_instructions = cfg.model.n_instructions
     self.n_operations = cfg.model.n_operations
     
-    if cfg.model.operation_linear:
+    self.operation_linear = cfg.model.operation_linear
+    if self.operation_linear:
       self.operationLinear = nn.Sequential(nn.Dropout(0.15),
                                       nn.Linear(cfg.model.d_model, cfg.model.d_model),
                                       nn.ReLU(),
@@ -190,7 +191,7 @@ class StepFilm(nn.Module):
   def forward(self, question, question_len, image):
     question = question.permute(1,0)
     instructions, operations = self.question_to_instruction(question, question_len)
-    if cfg.model.operation_linear:
+    if self.operation_linear:
       operations = self.operationLinear(operations)
     batch_size = instructions.shape[1]
 
