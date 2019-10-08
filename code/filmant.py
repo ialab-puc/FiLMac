@@ -134,7 +134,7 @@ class StepFilm(nn.Module):
                                                          d_model=cfg.model.d_model,
                                                          n_instructions=cfg.model.n_instructions,
                                                          transformer_nlayers=cfg.model.transformer_nlayers,
-                                                         transformer_dropout=cfg.transformer_dropout,
+                                                         transformer_dropout=cfg.model.transformer_dropout,
                                                          transformer_heads=cfg.model.transformer_heads,
                                                          PE_dropout=cfg.model.PE_dropout,)
     self.img_input = nn.Sequential(nn.Dropout(p=0.2),
@@ -160,7 +160,7 @@ class StepFilm(nn.Module):
     self.attn = nn.Linear(cfg.model.d_model, 1)
     
     # self.memory = nn.LSTM(cnn_dim, lstm_dim, 1)
-    encoderLayer = nn.TransformerEncoderLayer(cfg.model.d_model,cfg.model.transformer_heads, dropout=cfg.transformer_dropout)
+    encoderLayer = nn.TransformerEncoderLayer(cfg.model.d_model,cfg.model.transformer_heads, dropout=cfg.model.transformer_dropout)
     self.transformer = nn.TransformerEncoder(encoderLayer,
                                              cfg.model.transformer_nlayers)
 
