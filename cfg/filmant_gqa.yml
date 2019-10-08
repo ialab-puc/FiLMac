@@ -1,8 +1,8 @@
 GPU_ID: '0'
 WORKERS: 1
 CUDA: True
-LOGDIR: 'filmant8_clevr'
-COMET_PROJECT_NAME: 'filmant-clevr'
+LOGDIR: 'ffqi_nb0_gqa_512_4'
+COMET_PROJECT_NAME: 'gqa'
 
 TRAIN:
     FLAG: True
@@ -18,8 +18,9 @@ TRAIN:
     # MAX_STEPS: 4
 
 DATASET:
-    DATA_DIR: '/storage1/datasets/CLEVR_v1.0/features'
-    DATASET: 'clevr'
+    DATA_DIR: '/storage1/datasets/GQA/data'
+    DATASET: 'gqa'
+    # DATA_DIR: '/Users/sebamenabar/Documents/datasets/GQA/data'
 
 model:
     d_model: 300

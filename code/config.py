@@ -59,6 +59,7 @@ __C.model = edict(
     in_channels = 1024,
     cnn_dim=256,
     n_operations=1,
+    operation_linear=False,
 )
 
 
