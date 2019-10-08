@@ -1,7 +1,7 @@
 GPU_ID: '0'
 WORKERS: 1
 CUDA: True
-LOGDIR: 'ffqi_nb0_gqa_512_4'
+LOGDIR: 'filmantgqa'
 COMET_PROJECT_NAME: 'gqa'
 
 TRAIN:
@@ -30,7 +30,7 @@ model:
     transformer_heads: 4
     PE_dropout: 0.1
     n_filmblocks: 2
-    in_channels: 1024
+    in_channels: 2048
     cnn_dim: 300
     n_operations: 1
     operation_linear: True
