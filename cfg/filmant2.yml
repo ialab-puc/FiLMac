@@ -25,7 +25,7 @@ model:
     d_model: 256
     n_instructions: 3
     transformer_nlayers: 4
-    transformer_dropout: 0.3
+    transformer_dropout: 0.2
     transformer_heads: 4
     PE_dropout: 0.1
     n_filmblocks: 2

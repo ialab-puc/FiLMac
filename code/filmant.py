@@ -155,12 +155,12 @@ class StepFilm(nn.Module):
                                       nn.Dropout(0.15),
                                       nn.Linear(cfg.model.d_model, cfg.model.d_model))
 
-    self.res_blocks = []
-    for _ in range(self.n_filmblocks):
-            self.res_blocks.append(FiLMBlock(self.cnn_dim, dropout=0.2, batchnorm_affine=False))
-    self.res_blocks = nn.ModuleList(self.res_blocks)
+    # self.res_blocks = []
+    # for _ in range(self.n_filmblocks):
+    #         self.res_blocks.append(FiLMBlock(self.cnn_dim, dropout=0.2, batchnorm_affine=False))
+    # self.res_blocks = nn.ModuleList(self.res_blocks)
     
-    self.film_generator = nn.Linear(cfg.model.d_model, self.cond_feat_size * self.n_filmblocks)
+    # self.film_generator = nn.Linear(cfg.model.d_model, self.cond_feat_size * self.n_filmblocks)
 
     self.intruction_proj = nn.Linear(self.cnn_dim, cfg.model.d_model)
     self.activation = nn.ELU()
@@ -202,14 +202,14 @@ class StepFilm(nn.Module):
     mem = torch.empty(self.n_instructions + self.n_operations, batch_size, self.cnn_dim).cuda()
 
     for j, instruction in enumerate(instructions):
-      film = self.film_generator(instruction).view(batch_size, self.n_filmblocks,  self.cond_feat_size)
-      gammas, betas = torch.split(film[:,:,:2*self.cnn_dim], self.cnn_dim, dim=-1)
-      gammas = self.gamma_idty(gammas)
-      betas = self.beta_idty(betas)
+      # film = self.film_generator(instruction).view(batch_size, self.n_filmblocks,  self.cond_feat_size)
+      # gammas, betas = torch.split(film[:,:,:2*self.cnn_dim], self.cnn_dim, dim=-1)
+      # gammas = self.gamma_idty(gammas)
+      # betas = self.beta_idty(betas)
       res = img
-      for i in range(len(self.res_blocks)):
-        res = self.res_blocks[i](res, gammas[:, i, :], betas[:, i, :])
-      res = self.res_block_idty(res)
+      # for i in range(len(self.res_blocks)):
+      #   res = self.res_blocks[i](res, gammas[:, i, :], betas[:, i, :])
+      # res = self.res_block_idty(res)
       #TODO: test max pool instead of sum
       # res = res.sum(1)
       # mem[j] = res
