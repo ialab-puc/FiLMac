@@ -219,7 +219,7 @@ class StepFilm(nn.Module):
       # res = m(res).permute(0,2,1)
       # mem[j] = res.squeeze(1)
       if j > 0:
-        instruc = instr_mem_join(troch.cat([instruction, mem[j-1]]))
+        instruc = self.instr_mem_join(torch.cat((instruction, mem[j-1]), dim=1))
       else:
         instruc = instruction.clone()
 
