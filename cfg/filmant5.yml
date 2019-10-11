@@ -21,7 +21,7 @@ DATASET:
     DATASET: 'clevr'
 
 model:
-    d_model: 350
+    d_model: 400
     n_instructions: 5
     transformer_nlayers: 3
     transformer_dropout: 0.1
