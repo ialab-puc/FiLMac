@@ -189,7 +189,7 @@ class StepFilm(nn.Module):
     image = self.features_idty(image)
     img = self.img_input(image)
 
-    img = img.view(batch_size, self.cnn_dim, -1)
+    img = img.view(batch_size, self.d_model, -1)
     img = img.permute(2, 0, 1)
 
     kbI = torch.cat([img, instructions], dim=0)
