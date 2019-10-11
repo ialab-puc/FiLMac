@@ -126,7 +126,7 @@ class Trainer():
 
         # self.weight_moving_average(alpha=0)
         if cfg.TRAIN.RADAM:
-            self.optimizer = RAdam(self.model.parameters(), lr=self.lr)
+            self.optimizer = RAdam(self.model.parameters(), lr=self.lr, weight_decay=0.01)
         else:
             self.optimizer = optim.Adam(self.model.parameters(), lr=self.lr)
 
