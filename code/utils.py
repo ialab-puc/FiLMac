@@ -109,11 +109,10 @@ def cfg_to_exp_name(cfg):
     bsz = cfg.TRAIN.BATCH_SIZE
     lr = cfg.TRAIN.LEARNING_RATE
     module_dim = cfg.model.d_model
-    max_step = cfg.model.n_instructions
-    num_blocks = cfg.model.n_filmblocks
-    cnn_dim = cfg.model.cnn_dim
+    ninstructions = cfg.model.n_instructions
+    nlayers = cfg.model.transformer_nlayers
     
-    exp_name = f'{max_step}_{module_dim}_nb{num_blocks}_cnn{cnn_dim}'
+    exp_name = f'{ninstructions}_{module_dim}_{nlayers}layers'
 
     return exp_name
             
