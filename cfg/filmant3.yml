@@ -1,7 +1,7 @@
 GPU_ID: '0'
 WORKERS: 1
 CUDA: True
-LOGDIR: '3transformer_clevr'
+LOGDIR: '3transformer2_clevr'
 COMET_PROJECT_NAME: '3transformer-clevr'
 
 TRAIN:
