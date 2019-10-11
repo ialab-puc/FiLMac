@@ -138,11 +138,9 @@ class StepFilm(nn.Module):
                                                          transformer_heads=cfg.model.transformer_heads,
                                                          PE_dropout=cfg.model.PE_dropout,)
     self.img_input = nn.Sequential(nn.Dropout(p=0.2),
-                                   nn.Conv2d(cfg.model.in_channels, cfg.model.cnn_dim, 3, 1, 1),
+                                   nn.Conv2d(cfg.model.in_channels, cfg.model.d_model, 3, 1, 1),
                                    nn.ReLU())
     
-    self.n_filmblocks = cfg.model.n_filmblocks
-    self.cond_feat_size = 2 * cfg.model.cnn_dim
     self.cnn_dim = cfg.model.cnn_dim
     self.n_instructions = cfg.model.n_instructions
     self.n_operations = cfg.model.n_operations
@@ -155,18 +153,7 @@ class StepFilm(nn.Module):
                                       nn.Dropout(0.15),
                                       nn.Linear(cfg.model.d_model, cfg.model.d_model))
 
-    # self.res_blocks = []
-    # for _ in range(self.n_filmblocks):
-    #         self.res_blocks.append(FiLMBlock(self.cnn_dim, dropout=0.2, batchnorm_affine=False))
-    # self.res_blocks = nn.ModuleList(self.res_blocks)
-    
-    # self.film_generator = nn.Linear(cfg.model.d_model, self.cond_feat_size * self.n_filmblocks)
-    self.instr_mem_join = nn.Linear(cfg.model.d_model*2, cfg.model.d_model)
-
-    self.intruction_proj = nn.Linear(self.cnn_dim, cfg.model.d_model)
-    self.activation = nn.ELU()
     self.dropout = nn.Dropout(0.15)
-    self.attn = nn.Linear(cfg.model.d_model, 1)
     
     # Visualizations
     self.kb_attn_idty = nn.Identity()
@@ -174,8 +161,11 @@ class StepFilm(nn.Module):
     self.gamma_idty = nn.Identity()
     self.res_block_idty = nn.Identity()
     self.features_idty = nn.Identity()
-    
-    # self.memory = nn.LSTM(cnn_dim, lstm_dim, 1)
+
+    visualEncoderLayer = nn.TransformerEncoderLayer(cfg.model.d_model, cfg.model.transformer_heads, dropout=cfg.model.transformer_dropout)
+    self.visualTransformer = nn.TransformerEncoder(visualEncoderLayer,
+                                             cfg.model.transformer_nlayers)
+
     encoderLayer = nn.TransformerEncoderLayer(cfg.model.d_model,cfg.model.transformer_heads, dropout=cfg.model.transformer_dropout)
     self.transformer = nn.TransformerEncoder(encoderLayer,
                                              cfg.model.transformer_nlayers)
@@ -198,8 +188,13 @@ class StepFilm(nn.Module):
 
     image = self.features_idty(image)
     img = self.img_input(image)
-    img = img.view(batch_size, self.cnn_dim, -1)
-    img = img.permute(0,2,1)
+
+    print('img shape', img.shape)
+    print('instructions shape', instructions.shape)
+    exit(0)
+
+    # img = img.view(batch_size, self.cnn_dim, -1)
+    # img = img.permute(0,2,1)
     mem = torch.empty(self.n_instructions + self.n_operations, batch_size, self.cnn_dim).cuda()
 
     for j, instruction in enumerate(instructions):
@@ -218,15 +213,15 @@ class StepFilm(nn.Module):
       # m = nn.MaxPool1d(res.shape[2])
       # res = m(res).permute(0,2,1)
       # mem[j] = res.squeeze(1)
-      if j > 0:
-        instruc = self.instr_mem_join(torch.cat((instruction, mem[j-1]), dim=1))
-      else:
-        instruc = instruction.clone()
+      # if j > 0:
+      #   instruc = self.instr_mem_join(torch.cat((instruction, mem[j-1]), dim=1))
+      # else:
+      #   instruc = instruction.clone()
 
       
       know = self.intruction_proj(res)
-      instruc = instruc.unsqueeze(1)
-      interactions = instruc * know
+      instruction = instruction.unsqueeze(1)
+      interactions = instruction * know
       interactions = self.activation(interactions)
       
       ## Step 3: sum attentions up over the knowledge base
