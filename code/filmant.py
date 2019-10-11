@@ -167,7 +167,7 @@ class StepFilm(nn.Module):
                                              cfg.model.transformer_nlayers)
 
     encoderLayer = nn.TransformerEncoderLayer(cfg.model.d_model,cfg.model.transformer_heads, dropout=cfg.model.transformer_dropout)
-    self.transformer = nn.TransformerEncoder(encoderLayer,
+    self.reasoningTransformer = nn.TransformerEncoder(encoderLayer,
                                              cfg.model.transformer_nlayers)
 
     self.PE = PositionalEncoding(cfg.model.d_model, cfg.model.PE_dropout)
@@ -189,58 +189,18 @@ class StepFilm(nn.Module):
     image = self.features_idty(image)
     img = self.img_input(image)
 
-    print('img shape', img.shape)
-    print('instructions shape', instructions.shape)
-    exit(0)
+    img = img.view(batch_size, self.cnn_dim, -1)
+    img = img.permute(2, 0, 1)
 
-    # img = img.view(batch_size, self.cnn_dim, -1)
-    # img = img.permute(0,2,1)
-    mem = torch.empty(self.n_instructions + self.n_operations, batch_size, self.cnn_dim).cuda()
+    kbI = torch.cat([img, instructions], dim=0)
+    kbI = self.PE(kbI)
 
-    for j, instruction in enumerate(instructions):
-      # film = self.film_generator(instruction).view(batch_size, self.n_filmblocks,  self.cond_feat_size)
-      # gammas, betas = torch.split(film[:,:,:2*self.cnn_dim], self.cnn_dim, dim=-1)
-      # gammas = self.gamma_idty(gammas)
-      # betas = self.beta_idty(betas)
-      res = img
-      # for i in range(len(self.res_blocks)):
-      #   res = self.res_blocks[i](res, gammas[:, i, :], betas[:, i, :])
-      # res = self.res_block_idty(res)
-      #TODO: test max pool instead of sum
-      # res = res.sum(1)
-      # mem[j] = res
-      #res = res.permute(0,2,1)
-      # m = nn.MaxPool1d(res.shape[2])
-      # res = m(res).permute(0,2,1)
-      # mem[j] = res.squeeze(1)
-      # if j > 0:
-      #   instruc = self.instr_mem_join(torch.cat((instruction, mem[j-1]), dim=1))
-      # else:
-      #   instruc = instruction.clone()
+    kbI = self.visualTransformer(kbI)[-self.n_instructions:]
 
-      
-      know = self.intruction_proj(res)
-      instruction = instruction.unsqueeze(1)
-      interactions = instruction * know
-      interactions = self.activation(interactions)
-      
-      ## Step 3: sum attentions up over the knowledge base
-      # transform vectors to attention distribution
-      interactions = self.dropout(interactions)
-      attn = self.attn(interactions).squeeze(-1)
-      attn = F.softmax(attn, 1)
-      attn = self.kb_attn_idty(attn)
-
-      # sum up the knowledge base according to the distribution
-      attn = attn.unsqueeze(-1)
-      read = (attn * know).sum(1)
-      mem[j] = read
-    
-    for j, op in enumerate(operations):
-      mem[self.n_instructions + j] = op
-
+    mem = torch.cat([kbI, operations], dim=0)
     mem = self.PE(mem)
-    x = self.transformer(mem)
+
+    x = self.reasoningTransformer(mem)
     # x, _ = self.memory(mem, )
     #TODO change if n_operations >1
     x = x[-1]
