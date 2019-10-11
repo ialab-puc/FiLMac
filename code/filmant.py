@@ -142,6 +142,7 @@ class StepFilm(nn.Module):
                                    nn.ReLU())
     
     self.cnn_dim = cfg.model.cnn_dim
+    self.d_model = cfg.model.d_model
     self.n_instructions = cfg.model.n_instructions
     self.n_operations = cfg.model.n_operations
     
