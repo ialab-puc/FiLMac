@@ -92,7 +92,8 @@ class GQADataset(data.Dataset):
             objs = 'gqa_objects_vg.h5'
         with open(os.path.join(data_dir, info)) as f:
             self.spatial_info = json.load(f)
-        with open(os.path.join(data_dir[:-4], 'questions', '{}_balanced_questions.json'.format(split)), 'rb') as f:
+        #with open(os.path.join(data_dir[:-4], 'questions', '{}_balanced_questions.json'.format(split)), 'rb') as f:
+        with open(os.path.join(data_dir, 'balanced_{}_data.json'.format(split)), 'rb') as f:
             self.questions_json = json.load(f)
         self.img = h5py.File(os.path.join(data_dir, objs), 'r')
 
