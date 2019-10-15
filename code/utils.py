@@ -7,6 +7,7 @@ import functools
 from copy import deepcopy
 from itertools import chain, starmap
 from collections import OrderedDict
+import operator
 
 
 import numpy as np
@@ -17,8 +18,10 @@ from torch.nn import init
 import torchvision.utils as vutils
 from torch.autograd import Variable
 from torch.nn import functional as F
+from torch.utils.data import Subset, DataLoader
 
 from config import cfg
+from datasets import collate_fn_gqa
 
 
 def save_model(model, optim, iter, model_dir, max_to_keep=None, model_name=""):
@@ -114,6 +117,12 @@ def cfg_to_exp_name(cfg):
     
     exp_name = f'{ninstructions}_{module_dim}_{nlayers}layers'
 
+    if cfg.DATASET.IGNORE_TOKEN: exp_name += f'_ign{cfg.DATASET.IGNORE_TOKEN}'
+    if cfg.SAMPLE: exp_name += f'{cfg.SAMPLE}'
+    if cfg.TRAIN.CURRICULUM: 
+        exp_name += '_curr'
+        exp_name += f'_{cfg.TRAIN.CURRICULUM_STEP}'
+
     return exp_name
             
 def flatten_json_iterative_solution(dictionary):
@@ -193,3 +202,64 @@ class IntermediateLayerGetter(nn.Module):
             h.remove()
         
         return ret, output
+
+def get_sorted_words(data):
+    max_len = 0
+    words = {}
+    for q in data:
+        if max_len < len(q[1]): max_len = len(q[1])
+        for w in q[1]:
+            if w in words: words[w] += 1
+            else: words[w] = 1
+    sorted_words = sorted(words.items(), key=operator.itemgetter(1), reverse=True)
+    sorted_words = [s[0] for s in sorted_words]
+    return sorted_words
+
+def curriculum_learning(train_dataset, val_dataset, word_count, steps):
+    words = get_sorted_words(train_dataset.data)
+    if word_count == -1:
+        word_count = len(words)
+    words = words[:word_count]
+
+    train_idxs = []
+    for i in range(len(train_dataset.data)):
+        corr = True
+        if len(train_dataset.questions_json[train_dataset.data[i][-1]]['semantic']) > steps: corr = False
+        for word in train_dataset.data[i][1]:
+            if word not in words: corr = False
+        if corr: train_idxs.append(i)
+    val_idxs = []
+    for i in range(len(val_dataset.data)):
+        corr = True
+        if len(val_dataset.questions_json[val_dataset.data[i][-1]]['semantic']) > steps: corr = False
+        for word in val_dataset.data[i][1]:
+            if word not in words: corr = False
+        if corr: val_idxs.append(i)
+
+    train_loader = DataLoader(dataset=Subset(train_dataset, train_idxs), batch_size=cfg.TRAIN.BATCH_SIZE, shuffle=True,
+                                            num_workers=cfg.WORKERS, drop_last=True, collate_fn=collate_fn_gqa)
+    val_loader = DataLoader(dataset=Subset(val_dataset, val_idxs), batch_size=cfg.TEST_BATCH_SIZE, shuffle=False,
+                                            num_workers=cfg.WORKERS, drop_last=False, collate_fn=collate_fn_gqa)
+    return train_loader, val_loader
+
+CURRICULUM = [
+            (70, 2),
+            (70, 3),
+            (70, 9),
+            (90, 2),
+            (90, 3),
+            (90, 9),
+            (120, 2),
+            (120, 3),
+            (120, 9),
+            (150, 2),
+            (150, 3),
+            (150, 9),
+            (200, 2),
+            (200, 3),
+            (200, 9),
+            (250, 2),
+            (250, 3),
+            (250, 9),
+            (-1, 9),
+]

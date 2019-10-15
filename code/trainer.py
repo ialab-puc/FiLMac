@@ -23,7 +23,7 @@ import filmant as filmant
 import mac as mac
 from radam import RAdam
 from datasets import ClevrDataset, collate_fn, GQADataset, collate_fn_gqa
-from utils import mkdir_p, save_model, load_vocab, cfg_to_exp_name, flatten_json_iterative_solution
+from utils import mkdir_p, save_model, load_vocab, cfg_to_exp_name, flatten_json_iterative_solution, curriculum_learning, CURRICULUM
 
 
 class Logger(object):
@@ -81,6 +81,7 @@ class Trainer():
 
         # load vocab
         self.vocab = load_vocab(cfg)
+        ignore_idx = cfg.DATASET.IGNORE_TOKEN
         if cfg.DATASET.IGNORE_TOKEN: 
             ignore_idx = self.vocab['question_token_to_idx'][cfg.DATASET.IGNORE_TOKEN]
 
@@ -216,16 +217,16 @@ class Trainer():
         save_model(self.model, self.optimizer, iteration, self.model_dir, model_name="model")
         # save_model(self.model_ema, None, iteration, self.model_dir, model_name="model_ema")
 
-    def train_epoch(self, epoch):
+    def train_epoch(self, epoch, dataloader):
         cfg = self.cfg
         total_loss = 0.
         total_correct = 0
         total_samples = 0
 
-        self.labeled_data = iter(self.dataloader)
+        self.labeled_data = iter(dataloader)
         self.set_mode("train")
 
-        dataset = tqdm(self.labeled_data, total=len(self.dataloader), ncols=20)
+        dataset = tqdm(self.labeled_data, total=len(dataloader), ncols=20)
 
         for data in dataset:
             ######################################################
@@ -300,15 +301,21 @@ class Trainer():
         print("Start Training")
         for epoch in range(self.start_epoch, self.max_epochs):
 
+            train_dataloader, val_dataloader = self.dataloader, self.dataloader_val
+            if cfg.TRAIN.CURRICULUM:
+                curriculum_learning_step = CURRICULUM[epoch // cfg.TRAIN.CURRICULUM_STEP]
+                train_dataloader, val_dataloader = curriculum_learning(self.dataset, self.dataset_val, *curriculum_learning_step)
+            print(f'Dataloader size train : {len(train_dataloader)} | val : {len(val_dataloader)}')
+
             with self.comet_exp.train():
-                dict = self.train_epoch(epoch)
+                dict = self.train_epoch(epoch, train_dataloader)
                 # self.reduce_lr()
                 dict['epoch'] = epoch + 1
                 # dict['lr'] = self.lr
                 self.comet_exp.log_metrics(dict, epoch=epoch + 1,)
 
             with self.comet_exp.validate():
-                dict = self.log_results(epoch, dict)
+                dict = self.log_results(epoch, dict, val_dataloader)
                 dict['epoch'] = epoch + 1
                 dict['lr'] = self.lr
                 self.comet_exp.log_metrics(dict, epoch=epoch + 1,)
@@ -325,12 +332,12 @@ class Trainer():
         print("Finished Training")
         print(f"Highest validation accuracy: {self.previous_best_acc} at epoch {self.previous_best_epoch}")
 
-    def log_results(self, epoch, dict, max_eval_samples=None):
+    def log_results(self, epoch, dict, dataloader, max_eval_samples=None):
         epoch += 1
         self.writer.add_scalar("avg_loss", dict["avg_loss"], epoch)
         self.writer.add_scalar("train_accuracy", dict["accuracy"], epoch)
 
-        metrics = self.calc_accuracy("validation", max_samples=max_eval_samples)
+        metrics = self.calc_accuracy(dataloader, mode="validation", max_samples=max_eval_samples)
         # self.writer.add_scalar("val_accuracy_ema", metrics['acc_ema'], epoch)
         self.writer.add_scalar("val_accuracy", metrics['acc'], epoch)
         # self.writer.add_scalar("val_loss_ema", metrics['loss_ema'], epoch)
@@ -351,13 +358,14 @@ class Trainer():
 
         return metrics
 
-    def calc_accuracy(self, mode="train", max_samples=None):
+    def calc_accuracy(self, dataloader, mode="train", max_samples=None):
         self.set_mode("validation")
 
-        if mode == "train":
-            loader = self.dataloader
-        elif (mode == "validation") or (mode == 'test'):
-            loader = self.dataloader_val
+        # if mode == "train":
+        #     loader = self.dataloader
+        # elif (mode == "validation") or (mode == 'test'):
+        #     loader = self.dataloader_val
+        loader = dataloader
 
         total_correct = 0
         # total_correct_ema = 0
