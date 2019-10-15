@@ -126,7 +126,7 @@ class StepFilm(nn.Module):
                cfg,
                ):
     super(StepFilm, self).__init__()
-    
+    self.cfg = cfg
 
 
 
@@ -137,7 +137,14 @@ class StepFilm(nn.Module):
                                                          transformer_dropout=cfg.model.transformer_dropout,
                                                          transformer_heads=cfg.model.transformer_heads,
                                                          PE_dropout=cfg.model.PE_dropout,)
-    self.img_input = nn.Sequential(nn.Dropout(p=0.2),
+
+    if self.cfg.DATASET.DATASET == 'gqa': 
+        self.layer_norm = nn.LayerNorm((100, cfg.model.d_model))
+        self.img_fts_emb = nn.Linear(cfg.model.in_channels, cfg.model.d_model)
+        self.img_pos_emb = nn.Linear(4, cfg.model.d_model)
+
+    if self.cfg.DATASET.DATASET == 'clevr': 
+        self.img_input = nn.Sequential(nn.Dropout(p=0.2),
                                    nn.Conv2d(cfg.model.in_channels, cfg.model.d_model, 3, 1, 1),
                                    nn.ReLU())
     
@@ -180,7 +187,7 @@ class StepFilm(nn.Module):
                                     nn.Linear(cfg.model.d_model, num_answers))
     
     
-  def forward(self, question, question_len, image):
+  def forward(self, question, question_len, image, bbox=None):
     question = question.permute(1,0)
     instructions, operations = self.question_to_instruction(question, question_len)
     if self.operation_linear:
@@ -188,8 +195,15 @@ class StepFilm(nn.Module):
     batch_size = instructions.shape[1]
 
     image = self.features_idty(image)
-    img = self.img_input(image)
+    if self.cfg.DATASET.DATASET == 'clevr':
+        img = self.img_input(image)
 
+    if self.cfg.DATASET.DATASET == 'gqa': 
+        f = self.layer_norm(self.img_fts_emb(image))
+        p = self.layer_norm(self.img_pos_emb(bbox))
+        img = (f + p) / 2
+        img = img.permute(0, 2, 1)
+    
     img = img.view(batch_size, self.d_model, -1)
     img = img.permute(2, 0, 1)
 

@@ -231,7 +231,10 @@ class Trainer():
             ######################################################
             # (1) Prepare training data
             ######################################################
-            image, question, question_len, answer = data['image'], data['question'], data['question_length'], data['answer']
+            if cfg.DATASET.DATASET == 'clevr':
+                image, question, question_len, answer = data['image'], data['question'], data['question_length'], data['answer']
+            if cfg.DATASET.DATASET == 'gqa':
+                image, question, question_len, answer, bbox = data['image'], data['question'], data['question_length'], data['answer'], data['bbox']
             answer = answer.long()
             question = Variable(question)
             answer = Variable(answer)
@@ -240,6 +243,7 @@ class Trainer():
                 image = image.cuda()
                 question = question.cuda()
                 answer = answer.cuda().squeeze()
+                if cfg.DATASET.DATASET == 'gqa': bbox = bbox.cuda()
             else:
                 question = question
                 image = image
@@ -249,7 +253,10 @@ class Trainer():
             # (2) Train Model
             ############################
             self.optimizer.zero_grad()
-            scores = self.model(question, question_len, image)
+            if cfg.DATASET.DATASET == 'clevr':
+                scores = self.model(question, question_len, image)
+            if cfg.DATASET.DATASET == 'gqa':
+                scores = self.model(question, question_len, image, bbox)
             loss = self.loss_fn(scores, answer)
             loss.backward()
 
@@ -360,7 +367,10 @@ class Trainer():
         pbar = tqdm(loader, total=len(loader), desc=mode.upper(), ncols=20)
         for data in pbar:
 
-            image, question, question_len, answer = data['image'], data['question'], data['question_length'], data['answer']
+            if cfg.DATASET.DATASET == 'clevr':
+                image, question, question_len, answer = data['image'], data['question'], data['question_length'], data['answer']
+            if cfg.DATASET.DATASET == 'gqa':
+                image, question, question_len, answer, bbox = data['image'], data['question'], data['question_length'], data['answer'], data['bbox']
             answer = answer.long()
             question = Variable(question)
             answer = Variable(answer)
@@ -369,9 +379,13 @@ class Trainer():
                 image = image.cuda()
                 question = question.cuda()
                 answer = answer.cuda().squeeze()
+                if cfg.DATASET.DATASET == 'gqa': bbox = bbox.cuda()
 
             with torch.no_grad():
-                scores = self.model(question, question_len, image)
+                if cfg.DATASET.DATASET == 'clevr':
+                    scores = self.model(question, question_len, image)
+                if cfg.DATASET.DATASET == 'gqa':
+                    scores = self.model(question, question_len, image, bbox)
                 # scores_ema = self.model_ema(image, question, question_len)
 
                 loss = self.loss_fn(scores, answer)

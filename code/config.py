@@ -44,6 +44,7 @@ __C.TRAIN.RADAM = False
 # Dataset options
 __C.DATASET = edict()
 __C.DATASET.DATASET = 'clevr'
+__C.DATASET.OBJECTS = 'coco'
 __C.DATASET.DATA_DIR = ''
 __C.DATASET.COGENT = ''
 __C.DATASET.IGNORE_TOKEN = ''
