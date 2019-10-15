@@ -6,9 +6,9 @@ COMET_PROJECT_NAME: '3transformer-clevr'
 
 TRAIN:
     FLAG: True
-    LEARNING_RATE: 0.00001
+    LEARNING_RATE: 0.000001
     BATCH_SIZE: 128
-    MAX_EPOCHS: 100
+    MAX_EPOCHS: 150
     SNAPSHOT_INTERVAL: 5
     WEIGHT_INIT: "xavier_uniform"
     EALRY_STOPPING: False
