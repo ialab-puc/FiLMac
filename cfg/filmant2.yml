@@ -1,7 +1,7 @@
 GPU_ID: '0'
 WORKERS: 1
 CUDA: True
-LOGDIR: 'filmant2_clevr'
+LOGDIR: 'filmanter2_clevr'
 COMET_PROJECT_NAME: 'filmant-clevr'
 
 TRAIN:
@@ -23,7 +23,7 @@ DATASET:
 
 model:
     d_model: 256
-    n_instructions: 3
+    n_instructions: 6
     transformer_nlayers: 4
     transformer_dropout: 0.2
     transformer_heads: 4

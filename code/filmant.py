@@ -139,6 +139,9 @@ class StepFilm(nn.Module):
                                                          PE_dropout=cfg.model.PE_dropout,)
     self.img_input = nn.Sequential(nn.Dropout(p=0.2),
                                    nn.Conv2d(cfg.model.in_channels, cfg.model.cnn_dim, 3, 1, 1),
+                                   nn.ReLU(),
+                                   nn.Dropout(p=0.2),
+                                   nn.Conv2d(cfg.model.cnn_dim, cfg.model.cnn_dim, kernel_size=3, stride=1, padding=1),
                                    nn.ReLU())
     
     self.n_filmblocks = cfg.model.n_filmblocks

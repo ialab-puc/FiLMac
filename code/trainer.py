@@ -126,7 +126,7 @@ class Trainer():
 
         # self.weight_moving_average(alpha=0)
         if cfg.TRAIN.RADAM:
-            self.optimizer = RAdam(self.model.parameters(), lr=self.lr)
+            self.optimizer = RAdam(self.model.parameters(), lr=self.lr, weight_decay=0.1)
         else:
             self.optimizer = optim.Adam(self.model.parameters(), lr=self.lr)
 
@@ -199,12 +199,13 @@ class Trainer():
             self.model.eval()
             # self.model_ema.eval()
 
-    def reduce_lr(self):
+    def reduce_lr(self, epoch):
         epoch_loss = self.total_epoch_loss # / float(len(self.dataset) // self.batch_size)
         lossDiff = self.prior_epoch_loss - epoch_loss
-        if ((lossDiff < 0.015 and self.lr > 0.00002) or \
-            (lossDiff < 0.008 and self.lr > 0.00001) or \
-            (lossDiff < 0.003 and self.lr > 0.000005)):
+        if epoch % 20 == 0:
+        # if ((lossDiff < 0.015 and self.lr > 0.00002) or \
+            # (lossDiff < 0.008 and self.lr > 0.00001) or \
+            # (lossDiff < 0.003 and self.lr > 0.000005)):
             self.lr *= 0.5
             print("Reduced learning rate to {}".format(self.lr))
             for param_group in self.optimizer.param_groups:
@@ -295,7 +296,7 @@ class Trainer():
 
             with self.comet_exp.train():
                 dict = self.train_epoch(epoch)
-                # self.reduce_lr()
+                self.reduce_lr(epoch)
                 dict['epoch'] = epoch + 1
                 # dict['lr'] = self.lr
                 self.comet_exp.log_metrics(dict, epoch=epoch + 1,)
