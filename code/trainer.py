@@ -202,7 +202,7 @@ class Trainer():
     def reduce_lr(self, epoch):
         epoch_loss = self.total_epoch_loss # / float(len(self.dataset) // self.batch_size)
         lossDiff = self.prior_epoch_loss - epoch_loss
-        if epoch % 20 == 0:
+        if epoch % 20 == 0 and epoch > 1:
         # if ((lossDiff < 0.015 and self.lr > 0.00002) or \
             # (lossDiff < 0.008 and self.lr > 0.00001) or \
             # (lossDiff < 0.003 and self.lr > 0.000005)):

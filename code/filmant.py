@@ -164,7 +164,7 @@ class StepFilm(nn.Module):
     # self.res_blocks = nn.ModuleList(self.res_blocks)
     
     # self.film_generator = nn.Linear(cfg.model.d_model, self.cond_feat_size * self.n_filmblocks)
-    self.instr_mem_join = nn.Linear(cfg.model.d_model*2, cfg.model.d_model)
+    # self.instr_mem_join = nn.Linear(cfg.model.d_model*2, cfg.model.d_model)
 
     self.intruction_proj = nn.Linear(self.cnn_dim, cfg.model.d_model)
     self.activation = nn.ELU()
@@ -221,15 +221,15 @@ class StepFilm(nn.Module):
       # m = nn.MaxPool1d(res.shape[2])
       # res = m(res).permute(0,2,1)
       # mem[j] = res.squeeze(1)
-      if j > 0:
-        instruc = self.instr_mem_join(torch.cat((instruction, mem[j-1]), dim=1))
-      else:
-        instruc = instruction.clone()
+      # if j > 0:
+      #   instruc = self.instr_mem_join(torch.cat((instruction, mem[j-1]), dim=1))
+      # else:
+      #   instruc = instruction.clone()
 
       
       know = self.intruction_proj(res)
-      instruc = instruc.unsqueeze(1)
-      interactions = instruc * know
+      instruction = instruction.unsqueeze(1)
+      interactions = instruction * know
       interactions = self.activation(interactions)
       
       ## Step 3: sum attentions up over the knowledge base
