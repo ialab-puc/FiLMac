@@ -114,6 +114,9 @@ def cfg_to_exp_name(cfg):
     
     exp_name = f'{ninstructions}_{module_dim}_{nlayers}layers'
 
+    if cfg.DATASET.DATASET == 'gqa':
+        exp_name += f'_{cfg.DATASET.OBJECTS}'
+
     return exp_name
             
 def flatten_json_iterative_solution(dictionary):

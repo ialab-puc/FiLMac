@@ -16,7 +16,7 @@ from torch.utils.data import DataLoader
 
 import pprint
 from tqdm import tqdm
-from comet_ml import Experiment
+from comet_ml import Experiment, ExistingExperiment
 from tensorboardX import SummaryWriter
 
 import filmant as filmant
@@ -136,7 +136,7 @@ class Trainer():
             state = torch.load(cfg.resume_model, map_location=location)
             self.model.load_state_dict(state['model'])
             self.optimizer.load_state_dict(state['optim'])
-            self.start_epoch = state['iter'] + 1
+            self.start_epoch = state['iter']
             # state = torch.load(cfg.resume_model_ema, map_location=location)
             # self.model_ema.load_state_dict(state['model'])
 
@@ -160,6 +160,15 @@ class Trainer():
             workspace=os.getenv('COMET_WORKSPACE'),
             disabled=cfg.logcomet is False,
         )
+
+        if cfg.resume_comet:
+            self.comet_exp = ExistingExperiment(
+                project_name=cfg.COMET_PROJECT_NAME,
+                api_key=os.getenv('COMET_API_KEY'), 
+                workspace=os.getenv('COMET_WORKSPACE'),
+                previous_experiment=cfg.resume_comet)
+            print(f'Resume comet experiment : {cfg.resume_comet}')
+
         exp_name = cfg_to_exp_name(cfg)
         print(exp_name)
         self.comet_exp.set_name(exp_name)
@@ -367,9 +376,9 @@ class Trainer():
         pbar = tqdm(loader, total=len(loader), desc=mode.upper(), ncols=20)
         for data in pbar:
 
-            if cfg.DATASET.DATASET == 'clevr':
+            if self.cfg.DATASET.DATASET == 'clevr':
                 image, question, question_len, answer = data['image'], data['question'], data['question_length'], data['answer']
-            if cfg.DATASET.DATASET == 'gqa':
+            if self.cfg.DATASET.DATASET == 'gqa':
                 image, question, question_len, answer, bbox = data['image'], data['question'], data['question_length'], data['answer'], data['bbox']
             answer = answer.long()
             question = Variable(question)
@@ -379,12 +388,12 @@ class Trainer():
                 image = image.cuda()
                 question = question.cuda()
                 answer = answer.cuda().squeeze()
-                if cfg.DATASET.DATASET == 'gqa': bbox = bbox.cuda()
+                if self.cfg.DATASET.DATASET == 'gqa': bbox = bbox.cuda()
 
             with torch.no_grad():
-                if cfg.DATASET.DATASET == 'clevr':
+                if self.cfg.DATASET.DATASET == 'clevr':
                     scores = self.model(question, question_len, image)
-                if cfg.DATASET.DATASET == 'gqa':
+                if self.cfg.DATASET.DATASET == 'gqa':
                     scores = self.model(question, question_len, image, bbox)
                 # scores_ema = self.model_ema(image, question, question_len)
 
