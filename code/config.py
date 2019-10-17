@@ -21,6 +21,9 @@ __C.EVAL = False
 __C.TEST = False
 __C.TEST_BATCH_SIZE = 256
 __C.SAMPLE = False
+# __C.logcomet = False
+# __C.cfg_file = ''
+# __C.exp_name = ''
 __C.resume_model = None
 __C.resume_model_ema = None
 __C.resume_comet = None
@@ -75,7 +78,9 @@ def _merge_a_into_b(a, b):
     for k, v in a.items():
         # a must specify keys that are in b
         if not k in b:
-            raise KeyError('{} is not a valid config key'.format(k))
+            print('{} is not a valid config key'.format(k))
+            continue
+            # raise KeyError('{} is not a valid config key'.format(k))
 
         # the types must match, too
         old_type = type(b[k])

@@ -91,9 +91,12 @@ class QuestionToInstruction(nn.Module):
     # self.encoder_embed.weight.data.uniform_(-1, 1)
     self.embedding_dropout = nn.Dropout(p=0.15)
 
-    self.instructions = torch.tensor([i for i in range(vocab_size, vocab_size + n_instructions)]).cuda()
+    self.instructions = torch.tensor([i for i in range(vocab_size, vocab_size + n_instructions)])
     self.operations = torch.tensor([i for i in range(vocab_size + n_instructions,
-                                                     vocab_size + n_instructions + n_operations)]).cuda()
+                                                     vocab_size + n_instructions + n_operations)])
+    if torch.cuda.is_available():
+        self.instructions = self.instructions.cuda()
+        self.operations = self.operations.cuda()
 
 
   def forward(self, question, question_len):
