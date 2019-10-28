@@ -38,6 +38,7 @@ def parse_args():
     parser.add_argument('--logdir', type=str)
     parser.add_argument('--resume-model', type=str)
     parser.add_argument('--resume-model-ema', type=str)
+    parser.add_argument('--resume-comet', type=str)
     parser.add_argument('--bsz', type=int)
     parser.add_argument('--lr', type=float)
     parser.add_argument('--sample', action='store_true')
@@ -53,9 +54,9 @@ def parse_args():
 def set_logdir(max_steps, logdir=None):
     now = datetime.datetime.now(dateutil.tz.tzlocal())
     if logdir is None:
-        logdir = "data/{}_max_steps_{}".format(now, max_steps)
+        logdir = "/storage1/fcorencoret/FiLMac/data/{}_max_steps_{}".format(now, max_steps)
     else:
-        logdir = f'data/{logdir}'
+        logdir = f'/storage1/fcorencoret/FiLMac/data/{logdir}'
     mkdir_p(logdir)
     print("Saving output to: {}".format(logdir))
     code_dir = os.path.join(os.getcwd(), "code")
@@ -87,6 +88,8 @@ if __name__ == "__main__":
         cfg.DATASET.DATASET = args.dataset
     if args.resume_model is not None:
         cfg.resume_model = args.resume_model
+    if args.resume_comet is not None:
+        cfg.resume_comet = args.resume_comet
         # cfg.resume_model_ema = args.resume_model_ema
     if args.bsz is not None:
         cfg.TEST_BATCH_SIZE = args.bsz

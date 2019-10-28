@@ -1,34 +1,32 @@
 GPU_ID: '0'
 WORKERS: 1
 CUDA: True
-LOGDIR: 'filmant2_clevr'
-COMET_PROJECT_NAME: 'filmant-clevr'
+LOGDIR: '1_256_3layers_faster'
+COMET_PROJECT_NAME: '3transformer-gqa'
 
 TRAIN:
     FLAG: True
     LEARNING_RATE: 0.00005
-    BATCH_SIZE: 128
+    BATCH_SIZE: 256
     MAX_EPOCHS: 100
     SNAPSHOT_INTERVAL: 5
     WEIGHT_INIT: "xavier_uniform"
-    EALRY_STOPPING: False
-    PATIENCE: 10
+    EALRY_STOPPING: True
+    PATIENCE: 5
     CLIP_GRADS: True
-    RADAM: True
-    # MAX_STEPS: 4
+    RADAM: False
 
 DATASET:
-    DATA_DIR: '/storage1/datasets/CLEVR_v1.0/features'
-    DATASET: 'clevr'
+    DATA_DIR: '/storage1/datasets/GQA/data/'
+    DATASET: 'gqa'
+    OBJECTS: 'coco'
 
 model:
     d_model: 256
-    n_instructions: 3
-    transformer_nlayers: 4
+    n_instructions: 1
+    transformer_nlayers: 3
     transformer_dropout: 0.2
     transformer_heads: 4
     PE_dropout: 0.1
-    n_filmblocks: 2
-    in_channels: 1024
-    cnn_dim: 256
+    in_channels: 2048
     n_operations: 1

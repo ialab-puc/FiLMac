@@ -266,6 +266,7 @@ def interpolate(val, x_low, x_high):
 def plot_word_img_attn(
         cw_attns,
         obj_vis_attns,
+        op_attns,
         model_cfg,
         num_steps,
         words,
@@ -277,7 +278,7 @@ def plot_word_img_attn(
         bboxes,
         # vis='attn',
     ):
-    fig = plt.figure(figsize=(16, 2 * (num_steps + num_steps // 2) + 4))
+    fig = plt.figure(figsize=(16, 12 * (num_steps + num_steps // 2) + 4))
 
     g0 = gridspec.GridSpec(math.ceil(num_steps / 2) + 2, 3, figure=fig)
 
@@ -287,9 +288,9 @@ def plot_word_img_attn(
     ax_raw_image.imshow(img)
     ax_raw_image.set_axis_off()
     # ax_raw_image.set_aspect("auto")
-
+    grid_h = (num_steps // 2) + 2
     ax_table_cw = fig.add_subplot(g0[:math.ceil(grid_h / 2), 0])
-    ax_table_objs = fig.add_subplot(g0[math.ceil(grid_h / 2):, 0])
+    ax_table_op = fig.add_subplot(g0[math.ceil(grid_h / 2): grid_h, 0])
 
     ax_images = []
     for i in range(math.ceil(num_steps / 2)):
@@ -305,15 +306,17 @@ def plot_word_img_attn(
     ax_raw_image.set_axis_off()
     # ax_raw_image.set_aspect("auto")
 
-    table = cw_attns.numpy()[:model_cfg.n_instructions + 1].T
+    table_cw = cw_attns.cpu().numpy()[:model_cfg.n_instructions + 1].T
+    table_op = op_attns.cpu().numpy().T
     columns = ['I%d' % i for i in range(1, model_cfg.n_instructions + 1)] + ['Op']
     words = columns + words
-    tableMap = pd.DataFrame(data=table,
+    tableMap_cw = pd.DataFrame(data=table_cw,
                             columns=columns,
                             index=words,
                         )
 
-    bx = sns.heatmap(tableMap,
+
+    bx_cw = sns.heatmap(tableMap_cw,
                     cmap="Reds",
                     cbar=True,
                     linewidths=.5,
@@ -323,8 +326,27 @@ def plot_word_img_attn(
                     cbar_kws={"shrink": .5},
                     vmin=0,
                     )
-    bx.set_ylim(bx.get_ylim()[0] + 0.5, bx.get_ylim()[1] - 0.5)
-    bx.set_yticklabels(bx.get_yticklabels(), rotation = 0, fontsize = 15);
+    bx_cw.set_ylim(bx_cw.get_ylim()[0] + 0.5, bx_cw.get_ylim()[1] - 0.5)
+    bx_cw.set_yticklabels(bx_cw.get_yticklabels(), rotation = 0, fontsize = 15);
+
+    tableMap_op = pd.DataFrame(data=table_op,
+                            columns=['Op'],
+                            index=columns,
+                        )
+
+
+    bx_op = sns.heatmap(tableMap_op,
+                    cmap="Reds",
+                    cbar=True,
+                    linewidths=.5,
+                    linecolor="gray",
+                    square=True,
+                    ax=ax_table_op,
+                    cbar_kws={"shrink": .5},
+                    vmin=0,
+                    )
+    bx_op.set_ylim(bx_op.get_ylim()[0] + 0.5, bx_op.get_ylim()[1] - 0.5)
+    bx_op.set_yticklabels(bx_op.get_yticklabels(), rotation = 0, fontsize = 15);
 
     for ni in range(model_cfg.n_instructions):
         img_i = img.copy()
@@ -341,12 +363,117 @@ def plot_word_img_attn(
 
                 score = interpolate(box_attn_ij, low, high)
                 c_intensity = 255 * score
-                linewidth = (4 * score)
+                linewidth = (6 * score)
                 
                 img_i = cv2.rectangle(img_i, tuple(top_left), tuple(bottom_right), (math.ceil(c_intensity), 0, 0), int(round(linewidth)))
 
         ax_i.imshow(img_i)
         if ni == (num_steps - 1):
+            setlabel(ax_i, f'{pred} ({gt.upper()})')
+        else:
+            setlabel(ax_i, str(ni + 1))
+
+        ax_i.set_axis_off()
+        ax_i.set_aspect("auto")
+
+    plt.tight_layout()
+    plt.show()
+
+def plot_languaje_attn(
+        cw_attns,
+        obj_vis_attns,
+        op_attns,
+        model_cfg,
+        num_steps,
+        words,
+        images_root,
+        image_filename,
+        pred,
+        gt,
+        num_gt_objs,
+        bboxes,
+        # vis='attn',
+    ):
+    fig = plt.figure(figsize=(18, 18))
+
+    g0 = gridspec.GridSpec(3, 3, figure=fig)
+    ax_tables = []
+    ax_images = []
+    ax_ops = []
+    cw_tables = []
+    op_tables = []
+
+    for i in range(3):
+        ax_tables.append(fig.add_subplot(g0[i, 0]))
+        ax_images.append(fig.add_subplot(g0[i, 1]))
+        ax_ops.append(fig.add_subplot(g0[i, 2]))
+        cw_tables.append(cw_attns[i].cpu().numpy()[:model_cfg.n_instructions + 1].T)
+        op_tables.append(op_attns[i].cpu().numpy().T)
+
+    columns = ['I%d' % i for i in range(1, model_cfg.n_instructions + 1)] + ['Op']
+    words = columns + words
+    for table, ax_table, op_table, ax_op in zip(cw_tables, ax_tables, op_tables, ax_ops):
+        tableMap_cw = pd.DataFrame(data=table,
+                                columns=columns,
+                                index=words,
+                            )
+        bx = sns.heatmap(tableMap_cw,
+                        cmap="Reds",
+                        cbar=True,
+                        linewidths=.5,
+                        linecolor="gray",
+                        square=True,
+                        ax=ax_table,
+                        cbar_kws={"shrink": .5},
+                        vmin=0,
+                        )
+        bx.set_ylim(bx.get_ylim()[0] + 0.5, bx.get_ylim()[1] - 0.5)
+        bx.set_yticklabels(bx.get_yticklabels(), rotation = 0, fontsize = 15);
+
+        tableMap_op = pd.DataFrame(data=op_table,
+                            columns=['Op'],
+                            index=columns,
+                        )
+
+
+        bx_op = sns.heatmap(tableMap_op,
+                        cmap="Reds",
+                        cbar=True,
+                        linewidths=.5,
+                        linecolor="gray",
+                        square=True,
+                        ax=ax_op,
+                        cbar_kws={"shrink": .5},
+                        vmin=0,
+                        )
+        bx_op.set_ylim(bx_op.get_ylim()[0] + 0.5, bx_op.get_ylim()[1] - 0.5)
+        bx_op.set_yticklabels(bx_op.get_yticklabels(), rotation = 0, fontsize = 15);
+
+    
+    image_path = os.path.join(images_root, image_filename)
+    img = np.array(Image.open(image_path).convert('RGB'))
+
+    for ni in range(3):
+        img_i = img.copy()
+        ax_i = ax_images[ni]
+
+        gt_obbs_attn_i = obj_vis_attns[ni]
+        low, high = gt_obbs_attn_i.min().item(), gt_obbs_attn_i.max().item()
+        top = gt_obbs_attn_i.topk(4).values[-1].item()
+        for j in range(num_gt_objs):
+            box_attn_ij = gt_obbs_attn_i[j].item()
+            if box_attn_ij >= top:
+                box_abs_coords_j = bboxes[j] # * (w, h, w, h)
+                top_left, bottom_right = box_abs_coords_j[:2].astype(np.int64).tolist(), box_abs_coords_j[2:].astype(np.int64).tolist()
+
+                score = interpolate(box_attn_ij, low, high)
+                c_intensity = 255 * score
+                linewidth = (6 * score)
+                
+                img_i = cv2.rectangle(img_i, tuple(top_left), tuple(bottom_right), (math.ceil(c_intensity), 0, 0), int(round(linewidth)))
+
+        ax_i.imshow(img_i)
+        if ni == 2:
             setlabel(ax_i, f'{pred} ({gt.upper()})')
         else:
             setlabel(ax_i, str(ni + 1))
